@@ -1,5 +1,6 @@
 // Helper used by index.html to navigate to game.html
 function goToGame(opponentName) {
+  const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
   const state = {
     name:           S.player.name,
     balance:        S.player.balance,
@@ -12,5 +13,8 @@ function goToGame(opponentName) {
     autoStart:      true
   };
   sessionStorage.setItem('ludoGameState', JSON.stringify(state));
-  window.location.href = 'game.html';
+  const params = new URLSearchParams();
+  if (auth.token) params.set('token', auth.token);
+  if (auth.launch) params.set('launch', auth.launch);
+  window.location.href = `game.html${params.toString() ? '?' + params.toString() : ''}`;
 }

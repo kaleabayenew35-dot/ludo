@@ -165,17 +165,22 @@ document.querySelectorAll('.nav-tab').forEach(item => {
 
   const params = new URLSearchParams(window.location.search);
   const token = params.get('token');
+  const launch = params.get('launch');
   const phonenumber = params.get('phonenumber');
   const username = params.get('username');
   const balance = params.get('balance');
 
-  if (token && phonenumber && username && balance) {
+  if (token && launch) {
+    sessionStorage.setItem('appAuth', JSON.stringify({ token, launch, phonenumber, username, balance }));
+  } else if (token && phonenumber && username && balance) {
     sessionStorage.setItem('appAuth', JSON.stringify({ token, phonenumber, username, balance }));
   }
 
   const authData = JSON.parse(sessionStorage.getItem('appAuth'));
+  const hasSecureAuth = authData?.token && authData?.launch;
+  const hasLegacyAuth = authData?.token && authData?.phonenumber && authData?.username && authData.balance !== undefined;
 
-  if (!authData || !authData.token || !authData.phonenumber || !authData.username || authData.balance === undefined) {
+  if (!hasSecureAuth && !hasLegacyAuth) {
     document.body.innerHTML = `
       <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; background:var(--bg-0); color:var(--red); font-family:'Outfit',sans-serif; text-align:center; padding:20px;">
         <div style="font-size:60px; margin-bottom:20px;">🚫</div>
@@ -188,7 +193,7 @@ document.querySelectorAll('.nav-tab').forEach(item => {
     throw new Error('Access Denied: Missing URL parameters.');
   }
 
-  S.player.name = authData.username;
+  S.player.name = authData.username || 'Player';
   
   // If launching with balance in URL, use it. Otherwise try to restore from game state.
   if (balance) {
