@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ludo-frontend
+    runtime: node
+    rootDir: ludo_frontend
+    buildCommand: yarn install
+    startCommand: yarn start
+    envVars:
+      - key: NODE_VERSION
+        value: 24.21.0

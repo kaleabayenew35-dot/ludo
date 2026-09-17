@@ -1,0 +1,10 @@
+{
+  "name": "ludo-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static Ludo frontend",
+  "scripts": {
+    "dev": "node app.js",
+    "start": "node app.js"
+  }
+}
