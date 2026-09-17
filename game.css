@@ -1,0 +1,157 @@
+/* ════════════════════════════════════════
+   GAME PAGE — game.html
+   ════════════════════════════════════════ */
+
+body.game-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg-0);
+}
+
+/* ── Header ── */
+.game-header {
+  height: 52px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 100;
+}
+.game-back-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-hi);
+  color: var(--text-2);
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.game-back-btn:hover { background: var(--bg-hover); color: var(--text-1); border-color: var(--purple); }
+.game-header-center { flex: 1; display: flex; align-items: center; gap: 10px; }
+.game-header-title  { font-size: 15px; font-weight: 800; color: var(--text-1); }
+.game-header-id     { font-size: 12px; color: var(--text-3); font-weight: 600; }
+.game-header-right  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.game-header-sep    { width: 1px; height: 22px; background: var(--border-hi); }
+.game-header-stat   { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
+.ghs-label { font-size: 9px; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; }
+.ghs-val   { font-size: 13px; font-weight: 800; }
+.ghs-val.red   { color: var(--red); }
+.ghs-val.gold  { color: var(--gold); }
+.ghs-val.green { color: var(--green); }
+
+/* ── Body: players panel + main ── */
+.game-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* Players sidebar */
+.game-players-panel {
+  width: 150px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.gpp-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.game-player-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: var(--r);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  transition: all 0.2s;
+}
+.game-player-row.active-player {
+  background: rgba(124,106,247,0.12);
+  border-color: rgba(124,106,247,0.35);
+  color: var(--text-1);
+  box-shadow: 0 2px 8px rgba(124,106,247,0.2);
+}
+.color-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.color-dot.red    { background: var(--red); }
+.color-dot.blue   { background: var(--blue); }
+.color-dot.green  { background: var(--green); }
+.color-dot.yellow { background: var(--yellow); }
+
+/* Main area: board + control bar stacked */
+.game-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+/* Board wrapper — square that fills available height */
+.board-wrapper {
+  height: calc(100vh - 52px - 120px - 28px);
+  width:  calc(100vh - 52px - 120px - 28px);
+  max-width:  calc(100vw - 150px - 20px);
+  max-height: calc(100vw - 150px - 20px);
+  flex-shrink: 0;
+}
+
+/* The board grid itself */
+.game-page .ludo-board {
+  width:  100% !important;
+  height: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(15, 1fr) !important;
+  grid-template-rows:    repeat(15, 1fr) !important;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(124,106,247,0.25), 0 8px 40px rgba(0,0,0,0.55);
+}
+
+/* Control bar — fixed height, full width of main */
+.game-page .game-control-bar {
+  width: 100%;
+  max-width: calc(100vh - 52px - 120px - 28px);
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .game-players-panel { display: none; }
+  .board-wrapper {
+    height: calc(100vw - 20px);
+    width:  calc(100vw - 20px);
+    max-width:  calc(100vw - 20px);
+    max-height: calc(100vw - 20px);
+  }
+  .game-page .game-control-bar { max-width: 100%; }
+  .game-header-sep:not(:first-of-type),
+  .game-header-stat:last-child { display: none; }
+}

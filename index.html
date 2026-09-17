@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Ludo – The ultimate Telegram mini game. Play, earn, and compete with players worldwide.">
+  <title>Ludo — Play &amp; Win</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════
+       HEADER  (always full-width, always visible)
+       ═══════════════════════════════════════════════ -->
+  <header class="app-header" id="appHeader">
+
+    <!-- LEFT: Profile (Circle, Username, Balance) -->
+    <div class="hdr-left">
+      <div class="hdr-profile">
+        <div class="hdr-avatar" id="hdrAvatar">P</div>
+        <div class="hdr-profile-info">
+          <div class="hdr-name" id="hdrName">Player</div>
+          <div class="hdr-balance" id="headerBalance">$500</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: History & Help Buttons -->
+    <div class="hdr-right">
+      <button class="hdr-btn-text" id="historyBtn" title="History">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        <span>History</span>
+      </button>
+      <button class="hdr-btn-text" id="helpBtn" title="Help">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+        <span>Help</span>
+      </button>
+    </div>
+
+  </header>
+
+  <!-- ═══════════════════════════════════════════════
+       MINI-HEADER  (bet amounts + info)
+       ═══════════════════════════════════════════════ -->
+  <div class="mini-header" id="miniHeader">
+    <div class="mh-left">
+      <span class="mh-label">Bet</span>
+      <div class="amount-selector" id="globalAmounts">
+        <button class="amount-btn" data-amount="10">$10</button>
+        <button class="amount-btn" data-amount="20">$20</button>
+        <button class="amount-btn" data-amount="30">$30</button>
+        <button class="amount-btn" data-amount="50">$50</button>
+        <button class="amount-btn" data-amount="100">$100</button>
+        <button class="amount-btn" data-amount="200">$200</button>
+      </div>
+    </div>
+
+    <div class="mh-right">
+      <div class="mh-stat">
+        <span class="mh-stat-label">Wins</span>
+        <span class="mh-stat-val green" id="mhWins">7</span>
+      </div>
+      <div class="mh-sep"></div>
+      <div class="mh-stat">
+        <span class="mh-stat-label">Rank</span>
+        <span class="mh-stat-val purple" id="mhRank">#42</span>
+      </div>
+      <div class="mh-sep"></div>
+      <div class="mh-stat">
+        <span class="mh-stat-label">Game ID</span>
+        <span class="mh-stat-val gold" id="mhGameId">#——</span>
+      </div>
+      <div class="mh-sep"></div>
+      <div class="mh-stat">
+        <span class="mh-stat-label">Time</span>
+        <span class="mh-stat-val red" id="mhTimer">01:00</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       APP BODY  (main-col + right panel — under mini-header)
+       ═══════════════════════════════════════════════ -->
+  <div class="app-body">
+
+    <!-- ─── LEFT COLUMN: online bar + main sections ─── -->
+    <div class="app-left-col">
+
+      <!-- Online Players Bar (table) -->
+<div class="online-players-bar" id="onlinePlayersBar">
+  <div class="op-header">
+    <div class="op-header-left">
+      <span class="op-live-dot"></span>
+      <span class="op-title">Online Players</span>
+      <span class="op-count-badge" id="opCount">8 Online</span>
+    </div>
+    <span class="op-subtitle">Click a row to see player details</span>
+  </div>
+  <div class="online-table-wrapper">
+    <table class="online-table" id="onlineTable">
+      <thead>
+        <tr>
+          <th>Players</th>
+          <th>Open Slots</th>
+          <th>Name</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+      <!-- ─── MAIN CONTENT ─── -->
+      <main class="main-content" id="mainContent">
+
+        <!-- ── DASHBOARD ── -->
+        <section id="section-dashboard" class="section active">
+      </section>
+
+      <!-- ── GAME ── -->
+      <!-- Game section moved to game.html -->
+
+      <!-- ── WALLET ── -->
+      <section id="section-wallet" class="section">
+        <div class="wallet-top">
+          <div class="wallet-balance-card">
+            <div class="wbal-label">Total Balance</div>
+            <div class="wbal-value" id="walletBalance">$500.00</div>
+            <div class="wbal-sub">Available for betting</div>
+            <div class="wbal-actions">
+              <button class="btn-primary" id="depositBtn">+ Deposit</button>
+              <button class="btn-secondary" id="withdrawBtn">→ Withdraw</button>
+            </div>
+          </div>
+          <div class="wallet-metrics">
+            <div class="wmetric">
+              <div class="wm-label">Total Won</div>
+              <div class="wm-value green" id="wWon">$0</div>
+            </div>
+            <div class="wm-divider"></div>
+            <div class="wmetric">
+              <div class="wm-label">Total Lost</div>
+              <div class="wm-value red" id="wLost">$0</div>
+            </div>
+            <div class="wm-divider"></div>
+            <div class="wmetric">
+              <div class="wm-label">Net Profit</div>
+              <div class="wm-value" id="wNet">$0</div>
+            </div>
+          </div>
+        </div>
+        <div class="wallet-transactions">
+          <div class="section-heading">
+            <h3>Transaction History</h3>
+            <span class="tx-count" id="txCount">0 records</span>
+          </div>
+          <div class="tx-list" id="txList">
+            <div class="empty-state"><div class="empty-icon">💸</div><div>No transactions yet</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── LEADERBOARD ── -->
+      <section id="section-leaderboard" class="section">
+        <div class="lb-topbar">
+          <h2 class="lb-title">Global Rankings</h2>
+          <div class="tab-group" id="lbTabs">
+            <button class="tab-btn active" data-tab="alltime">All Time</button>
+            <button class="tab-btn" data-tab="weekly">Weekly</button>
+            <button class="tab-btn" data-tab="daily">Daily</button>
+          </div>
+        </div>
+        <div class="podium" id="podium"></div>
+        <div class="lb-table">
+          <div class="lb-thead">
+            <span>#</span><span>Player</span><span>Wins</span><span>Earnings</span><span>Win Rate</span>
+          </div>
+          <div id="lbBody" class="lb-body"></div>
+        </div>
+      </section>
+
+      <!-- ── HISTORY ── -->
+      <section id="section-history" class="section">
+        <div class="history-topbar">
+          <h2>Match History</h2>
+          <div class="tab-group" id="historyFilter">
+            <button class="tab-btn active" data-filter="all">All</button>
+            <button class="tab-btn" data-filter="win">Wins</button>
+            <button class="tab-btn" data-filter="loss">Losses</button>
+          </div>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="empty-state">
+            <div class="empty-icon">🎮</div>
+            <div>No games played yet</div>
+            <button class="btn-primary" style="margin-top:16px" id="historyPlayBtn">Play First Game</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+    </div><!-- /.app-left-col -->
+
+    <!-- ─── RIGHT PANEL (always visible, full height under mini-header) ─── -->
+    <aside class="right-panel" id="rightPanel">
+
+      <!-- Play vs AI + stats -->
+      <div class="rp-block rp-center-block">
+        <button class="btn-primary rp-play-ai-btn" id="aiBtn">🤖 Play vs AI</button>
+        <div class="rp-divider"></div>
+        <div class="rp-stats-row">
+          <div class="rp-stat-box green">
+            <span class="rp-stat-num" id="rpWins">7</span>
+            <span class="rp-stat-lbl">Wins</span>
+          </div>
+          <div class="rp-stat-box red">
+            <span class="rp-stat-num" id="rpLosses">3</span>
+            <span class="rp-stat-lbl">Losses</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rp-divider"></div>
+
+      <!-- Room / Lobby block -->
+      <div class="rp-block rp-room-block">
+        <div class="rp-room-header">
+          <span class="rp-room-title">🎮 Game Room</span>
+          <span class="rp-room-badge" id="rpRoomBadge">No Room</span>
+        </div>
+
+        <!-- Action buttons: Create or Join -->
+        <div class="rp-room-actions" id="rpRoomActions">
+          <button class="rp-room-btn create" id="rpCreateRoomBtn">＋ Create Room</button>
+          <button class="rp-room-btn join"   id="rpJoinRoomBtn">🔗 Join via Invite</button>
+        </div>
+
+        <!-- Room lobby (hidden until created/joined) -->
+        <div class="rp-lobby" id="rpLobby" style="display:none">
+
+          <!-- Room info row -->
+          <div class="rp-lobby-info">
+            <div class="rp-lobby-id-wrap">
+              <span class="rp-lobby-id-label">Room ID</span>
+              <span class="rp-lobby-id" id="rpLobbyId">#——</span>
+            </div>
+            <button class="rp-copy-btn" id="rpCopyInviteBtn" title="Copy invite link">📋 Copy</button>
+          </div>
+
+          <!-- Player slots (max 4) -->
+          <div class="rp-slots" id="rpSlots"></div>
+
+          <!-- Start / Leave -->
+          <div class="rp-lobby-btns">
+            <button class="rp-room-btn start" id="rpStartRoomBtn" disabled>▶ Start Game</button>
+            <button class="rp-room-btn leave" id="rpLeaveRoomBtn">✕ Leave</button>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+  </div><!-- /.app-body -->
+
+  <!-- ═══════════════════════════════════════════════
+       MODALS & OVERLAYS
+       ═══════════════════════════════════════════════ -->
+
+  <!-- Match Finding -->
+  <div class="overlay" id="matchModal" aria-hidden="true">
+    <div class="modal-box">
+      <div class="search-anim">
+        <div class="search-rings"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div></div>
+        <div class="search-center">🔍</div>
+      </div>
+      <h3>Finding Match…</h3>
+      <p id="matchStatusText">Searching for players near your skill level</p>
+      <div class="match-dots"><span></span><span></span><span></span></div>
+      <button class="btn-ghost" id="cancelMatchBtn">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Win -->
+  <div class="overlay" id="winModal" aria-hidden="true">
+    <div class="modal-box celebration">
+      <div class="confetti-burst" id="confettiBurst"></div>
+      <div class="trophy-emoji">🏆</div>
+      <h2 class="gradient-text">You Win!</h2>
+      <p id="winMsg">You earned $20!</p>
+      <button class="btn-primary" id="winContinueBtn">Collect Reward</button>
+    </div>
+  </div>
+
+  <!-- Lose -->
+  <div class="overlay" id="loseModal" aria-hidden="true">
+    <div class="modal-box">
+      <div class="skull-emoji">💀</div>
+      <h2>Game Over</h2>
+      <p id="loseMsg">Better luck next time!</p>
+      <button class="btn-primary" id="loseContinueBtn">Try Again</button>
+    </div>
+  </div>
+
+  <!-- Help -->
+  <div class="overlay" id="helpModal" aria-hidden="true">
+    <div class="modal-box small">
+      <div class="modal-header-row">
+        <h3>How to Play</h3>
+        <button class="close-btn" data-close="helpModal">✕</button>
+      </div>
+      <div class="help-content">
+        <div class="help-step"><span class="help-num">1</span><div><strong>Choose your bet</strong> — Select an amount from the mini-header bar</div></div>
+        <div class="help-step"><span class="help-num">2</span><div><strong>Find a match</strong> — Play against real players or AI</div></div>
+        <div class="help-step"><span class="help-num">3</span><div><strong>Roll the dice</strong> — Move your pieces around the board</div></div>
+        <div class="help-step"><span class="help-num">4</span><div><strong>Get all 4 home</strong> — First to finish all pieces wins</div></div>
+        <div class="help-step"><span class="help-num">5</span><div><strong>Win the pot</strong> — Winner takes double the bet!</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deposit -->
+  <div class="overlay" id="depositModal" aria-hidden="true">
+    <div class="modal-box small">
+      <div class="modal-header-row">
+        <h3>Deposit Funds</h3>
+        <button class="close-btn" data-close="depositModal">✕</button>
+      </div>
+      <p class="modal-sub">Add funds to your Ludo wallet</p>
+      <input type="number" class="modal-input" id="depositAmount" placeholder="Enter amount (e.g. 100)" min="1" max="10000">
+      <button class="btn-primary full" id="confirmDeposit">Confirm Deposit</button>
+    </div>
+  </div>
+
+  <!-- Withdraw -->
+  <div class="overlay" id="withdrawModal" aria-hidden="true">
+    <div class="modal-box small">
+      <div class="modal-header-row">
+        <h3>Withdraw Funds</h3>
+        <button class="close-btn" data-close="withdrawModal">✕</button>
+      </div>
+      <p class="modal-sub">Withdraw to your Telegram wallet</p>
+      <input type="number" class="modal-input" id="withdrawAmount" placeholder="Enter amount" min="1">
+      <button class="btn-primary full" id="confirmWithdraw">Confirm Withdraw</button>
+    </div>
+  </div>
+
+  <!-- Join Room via Invite -->
+  <div class="overlay" id="joinRoomModal" aria-hidden="true">
+    <div class="modal-box small">
+      <div class="modal-header-row">
+        <h3>Join via Invite</h3>
+        <button class="close-btn" data-close="joinRoomModal">✕</button>
+      </div>
+      <p class="modal-sub">Enter the Room ID to join a friend's game</p>
+      <input type="text" class="modal-input" id="joinRoomInput" placeholder="e.g. 48291" maxlength="6">
+      <button class="btn-primary full" id="confirmJoinRoomBtn">Join Room</button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script src="game_redirect.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
