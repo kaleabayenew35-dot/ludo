@@ -1,5 +1,6 @@
 // Helper used by index.html to navigate to game.html
 function goToGame(opponentName) {
+  if ((opponentName || 'AI') === 'AI' && window.__LUDO_AI_ENABLED__ !== true) return;
   const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
   const state = {
     name:           S.player.name,

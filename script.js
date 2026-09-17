@@ -84,6 +84,22 @@ const S = {
 const COLORS = ['red','blue','green','yellow'];
 const COLOR_EMOJIS = { red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡' };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || '').replace(/\/$/, '');
+let aiEnabled = false;
+
+async function loadAiConfig() {
+  try {
+    const response = await fetch(`${LUDO_API_URL}/api/ai/config`, { cache: 'no-store' });
+    const json = await response.json();
+    aiEnabled = response.ok && Boolean((json?.data ?? json)?.ai_enabled);
+  } catch {
+    aiEnabled = false;
+  }
+  window.__LUDO_AI_ENABLED__ = aiEnabled;
+  if (!aiEnabled) {
+    ['aiBtn', 'playAiBtn', 'mhPlayBtn'].forEach(id => $(id)?.remove());
+  }
+}
 
 // ─── SAMPLE DATA ─────────────────────────────────────────────
 function buildSampleLeaderboard() {
@@ -210,7 +226,7 @@ document.querySelectorAll('.nav-tab').forEach(item => {
     try { tg.expand(); } catch(e) {}
     tg.MainButton.setText('Play Now');
     tg.MainButton.show();
-    tg.MainButton.onClick(() => goToGame('AI'));
+    tg.MainButton.onClick(() => { if (aiEnabled) goToGame('AI'); });
   }
   syncProfile();
 })();
@@ -344,6 +360,7 @@ if (rpFindMatchBtn) rpFindMatchBtn.addEventListener('click', startMatchmaking);
 const playAiBtn = $('playAiBtn');
 if (playAiBtn) {
   playAiBtn.addEventListener('click', () => {
+    if (!aiEnabled) return;
     if (S.selectedAmount === 0) {
       toast('Please select a bet amount first!', 'error'); return;
     }
@@ -351,6 +368,7 @@ if (playAiBtn) {
   });
 }
 $('aiBtn').addEventListener('click', () => {
+  if (!aiEnabled) return;
   if (S.selectedAmount === 0) {
     toast('Please select a bet amount first!', 'error'); return;
   }
@@ -359,12 +377,15 @@ $('aiBtn').addEventListener('click', () => {
 const mhPlayBtn = $('mhPlayBtn');
 if (mhPlayBtn) {
   mhPlayBtn.addEventListener('click', () => {
+    if (!aiEnabled) return;
     if (S.selectedAmount === 0) {
       toast('Please select a bet amount first!', 'error'); return;
     }
     goToGame('AI');
   });
 }
+
+loadAiConfig();
 
 function startMatchmaking() {
   if (S.selectedAmount === 0) {
