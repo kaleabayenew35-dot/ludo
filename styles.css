@@ -307,6 +307,27 @@ button { cursor: pointer; font-family: inherit; }
 .app-header .cd-label { font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); font-weight:600; }
 .app-header .ludo-logo { position:absolute; left:50%; transform:translateX(-50%); }
 
+/* Exact XO/Dama right sidebar */
+.home-right.sidebar.right-panel { width:70px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; padding:10px 0; gap:10px; background:rgba(0,0,0,.22); border-left:0; overflow-y:auto; }
+.home-right.sidebar .sidebar-btn { position:relative; overflow:hidden; width:52px; height:60px; border-radius:13px; border:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; transition:var(--transition); }
+.home-right.sidebar .ai-btn { background:linear-gradient(135deg,var(--gold-dim),var(--gold)); box-shadow:0 4px 14px rgba(212,160,23,.4); color:var(--dark); }
+.home-right.sidebar .sidebar-divider { width:36px; height:1px; background:rgba(255,255,255,.08); flex-shrink:0; }
+.home-right.sidebar .sidebar-stats { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; }
+.home-right.sidebar .sbs-item { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.home-right.sidebar .sbs-num { font-family:'Cinzel',serif; font-size:.92rem; font-weight:900; color:var(--cream); line-height:1; }
+.home-right.sidebar .sbs-num.red { color:var(--red-light); }
+.home-right.sidebar .sbs-num.gold { color:var(--gold); }
+.home-right.sidebar .sbs-lbl { font-size:.47rem; letter-spacing:.08em; text-transform:uppercase; color:var(--text-3); font-weight:700; }
+.home-right.sidebar .winrate-row { display:flex; flex-direction:column; align-items:center; gap:4px; padding:0 6px; width:100%; }
+.home-right.sidebar .winrate-ring { position:relative; width:42px; height:42px; margin:0; border:0; box-shadow:none; }
+.home-right.sidebar .ring-svg { width:42px; height:42px; transform:rotate(-90deg); }
+.home-right.sidebar .ring-bg { fill:none; stroke:rgba(255,255,255,.08); stroke-width:3; }
+.home-right.sidebar .ring-fill { fill:none; stroke:var(--gold); stroke-width:3; stroke-linecap:round; transition:stroke-dasharray .6s ease; }
+.home-right.sidebar .ring-pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:.58rem; font-weight:900; color:var(--gold); font-family:'Cinzel',serif; }
+.home-right.sidebar .winrate-info { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.home-right.sidebar .winrate-title { font-size:.58rem; font-weight:700; color:var(--cream); letter-spacing:.04em; }
+.home-right.sidebar .winrate-sub { font-size:.5rem; color:var(--text-3); white-space:nowrap; }
+
 @media (max-width:700px) {
   .hdr-btn-text { display:none; }
   .hdr-right { gap:4px; }
@@ -1458,7 +1479,7 @@ button { cursor: pointer; font-family: inherit; }
 }
 @media (max-width: 860px) {
   :root { --rp-w: 0px; }
-  .right-panel { display: none; }
+  .right-panel { display: flex; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .quick-play-row { grid-template-columns: 1fr; }
   .wallet-top { grid-template-columns: 1fr; }

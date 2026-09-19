@@ -99,7 +99,7 @@ async function loadAiConfig() {
   }
   window.__LUDO_AI_ENABLED__ = aiEnabled;
   if (!aiEnabled) {
-    ['aiBtn', 'playAiBtn', 'mhPlayBtn'].forEach(id => $(id)?.remove());
+    // Keep the XO/Dama-style AI control visible even while the backend config is unavailable.
   }
 }
 
@@ -362,12 +362,17 @@ function renderDashboard() {
   const mhw = $('mhWins'); if (mhw) mhw.textContent = wins;
 
   // Right Panel Stats
-  const rpw = $('rpWins'); if (rpw) rpw.textContent = wins;
-  const rpl = $('rpLosses'); if (rpl) rpl.textContent = losses;
-  const rpd = $('rpDraws'); if (rpd) rpd.textContent = S.player.draws || 0;
-  const rpr = $('rpWinRate'); if (rpr) {
+  const rpw = $('sideWins'); if (rpw) rpw.textContent = wins;
+  const rpl = $('sideLosses'); if (rpl) rpl.textContent = losses;
+  const rpd = $('sideDraws'); if (rpd) rpd.textContent = S.player.draws || 0;
+  const rpr = $('ringPct');
+  const ring = $('ringFill');
+  if (rpr) {
     const totalGames = wins + losses + (S.player.draws || 0);
-    rpr.textContent = totalGames ? Math.round(wins / totalGames * 100) + '%' : '0%';
+    const percent = totalGames ? Math.round(wins / totalGames * 100) : 0;
+    rpr.textContent = percent + '%';
+    if (ring) ring.setAttribute('stroke-dasharray', `${percent} 100`);
+    const sub = $('winrateSub'); if (sub) sub.textContent = `${totalGames} total games`;
   }
 
   // Mini History on Dashboard
@@ -442,7 +447,7 @@ if (findMatchBtn) findMatchBtn.addEventListener('click', startMatchmaking);
 const rpFindMatchBtn = $('rpFindMatchBtn');
 if (rpFindMatchBtn) rpFindMatchBtn.addEventListener('click', startMatchmaking);
 
-const playAiBtn = $('playAiBtn');
+const playAiBtn = $('playAiSidebar');
 if (playAiBtn) {
   playAiBtn.addEventListener('click', () => {
     if (!aiEnabled) return;
@@ -452,13 +457,6 @@ if (playAiBtn) {
     goToGame('AI');
   });
 }
-$('aiBtn').addEventListener('click', () => {
-  if (!aiEnabled) return;
-  if (S.selectedAmount === 0) {
-    toast('Please select a bet amount first!', 'error'); return;
-  }
-  goToGame('AI');
-});
 const mhPlayBtn = $('mhPlayBtn');
 if (mhPlayBtn) {
   mhPlayBtn.addEventListener('click', () => {

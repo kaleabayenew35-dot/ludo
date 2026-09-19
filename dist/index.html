@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&amp;family=Rajdhani:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/dashboard-DaI0crLv.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/styles-D67kfPJM.js">
-  <link rel="stylesheet" crossorigin href="/assets/styles-OeNNoYx2.css">
+  <script type="module" crossorigin src="/assets/dashboard-D_0imtJb.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/styles-DKZl3DkC.js">
+  <link rel="stylesheet" crossorigin href="/assets/styles-Um5GE-j8.css">
 </head>
 <body>
 
@@ -218,30 +218,31 @@
     </div><!-- /.app-left-col -->
 
     <!-- ─── RIGHT PANEL (always visible, full height under mini-header) ─── -->
-    <aside class="right-panel" id="rightPanel">
+    <aside class="home-right sidebar right-panel" id="sidebar">
+      <button class="sidebar-btn ai-btn" id="playAiSidebar" type="button">
+        <span class="sb-icon">🤖</span>
+        <span class="sb-label">vs AI</span>
+        <div class="btn-shine"></div>
+      </button>
 
-      <!-- Play vs AI + stats -->
-      <div class="rp-block rp-center-block">
-        <button class="btn-primary rp-play-ai-btn" id="aiBtn">🤖 Play vs AI</button>
-        <div class="rp-divider"></div>
-        <div class="rp-stats-row">
-          <div class="rp-stat-box green">
-            <span class="rp-stat-num" id="rpWins">7</span>
-            <span class="rp-stat-lbl">Wins</span>
-          </div>
-          <div class="rp-stat-box red">
-            <span class="rp-stat-num" id="rpLosses">3</span>
-            <span class="rp-stat-lbl">Losses</span>
-          </div>
-          <div class="rp-stat-box gold">
-            <span class="rp-stat-num" id="rpDraws">0</span>
-            <span class="rp-stat-lbl">Draws</span>
-          </div>
-        </div>
-        <div class="winrate-ring"><div class="winrate-value" id="rpWinRate">0%</div><span>Win rate</span></div>
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-stats">
+        <div class="sbs-item"><span class="sbs-num" id="sideWins">0</span><span class="sbs-lbl">Wins</span></div>
+        <div class="sbs-item"><span class="sbs-num red" id="sideLosses">0</span><span class="sbs-lbl">Losses</span></div>
+        <div class="sbs-item"><span class="sbs-num gold" id="sideDraws">0</span><span class="sbs-lbl">Draws</span></div>
       </div>
 
-      <div class="rp-divider"></div>
+      <div class="winrate-row">
+        <div class="winrate-ring">
+          <svg viewBox="0 0 36 36" class="ring-svg">
+            <circle class="ring-bg" cx="18" cy="18" r="15"/>
+            <circle class="ring-fill" id="ringFill" cx="18" cy="18" r="15" stroke-dasharray="0 100" stroke-dashoffset="25"/>
+          </svg>
+          <span class="ring-pct" id="ringPct">0%</span>
+        </div>
+        <div class="winrate-info"><span class="winrate-title">Win Rate</span><span class="winrate-sub" id="winrateSub">0 total games</span></div>
+      </div>
 
       <!-- Room / Lobby block -->
       <div class="rp-block rp-room-block">
