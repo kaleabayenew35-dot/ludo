@@ -28,27 +28,25 @@
   <!-- ═══════════════════════════════════════════════
        HEADER  (always full-width, always visible)
        ═══════════════════════════════════════════════ -->
-  <header class="app-header" id="appHeader">
+  <header class="top-bar app-header" id="appHeader">
 
     <!-- LEFT: Profile (Circle, Username, Balance) -->
-    <div class="hdr-left">
-      <div class="hdr-profile">
-          <div class="hdr-avatar tg-avatar" id="hdrAvatar">P</div>
-        <div class="hdr-profile-info">
-          <div class="hdr-name tg-name" id="hdrName">Player</div>
-          <div class="hdr-balance tb-balance"><span id="headerBalance">💰 0</span> ETB <button class="tb-bal-refresh" id="balRefreshBtn" type="button" title="Refresh balance">↻</button><span class="tb-bal-spinner hidden" id="balSpinner"></span></div>
-        </div>
+    <div class="tb-user hdr-left">
+      <div class="tg-avatar hdr-avatar" id="hdrAvatar">P</div>
+      <div class="tb-user-info hdr-profile-info">
+          <div class="tg-name hdr-name" id="hdrName">Player</div>
+          <div class="tb-balance"><span id="headerBalance">💰 0</span> ETB <button class="tb-bal-refresh" id="balRefreshBtn" type="button" title="Refresh balance">↻</button><span class="tb-bal-spinner hidden" id="balSpinner"></span></div>
       </div>
     </div>
 
-    <div class="ludo-logo"><span class="ludo-logo-icon">🎲</span><span>LUDO</span></div>
+    <div class="tb-logo ludo-logo"><span class="ludo-logo-icon">🎲</span><span>LUDO</span></div>
 
-    <div class="hdr-right">
-      <button class="hdr-icon-btn" id="helpBtn" title="How to play" type="button">❓
+    <div class="tb-right hdr-right">
+      <button class="tb-icon-btn hdr-icon-btn" id="helpBtn" title="How to play" type="button">❓
       </button>
-      <button class="hdr-icon-btn" id="historyBtn" title="Game history" type="button">📜
+      <button class="tb-icon-btn hdr-icon-btn" id="historyBtn" title="Game history" type="button">📜
       </button>
-      <div class="ludo-countdown"><div class="ludo-countdown-ring"><span>20</span></div><small>Next match</small></div>
+      <div class="tb-countdown ludo-countdown"><div class="cd-ring ludo-countdown-ring"><span class="cd-num">20</span></div><span class="cd-label">Next match</span></div>
     </div>
 
   </header>

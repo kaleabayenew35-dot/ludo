@@ -281,6 +281,32 @@ button { cursor: pointer; font-family: inherit; }
 .right-panel { background:rgba(17,17,17,.86); border-left:1px solid rgba(212,160,23,.1); }
 .rp-room-block { display:none; }
 
+/* Exact XO/Dama top-bar treatment */
+.app-header.top-bar {
+  position:relative; z-index:10; flex-shrink:0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 14px 8px; gap:8px;
+  background:rgba(13,13,13,.88);
+  border-bottom:1px solid rgba(212,160,23,.14);
+  backdrop-filter:blur(14px);
+}
+.app-header .tb-user { display:flex; align-items:center; gap:9px; min-width:0; flex:1; }
+.app-header .tg-avatar { width:38px; height:38px; border-radius:50%; flex-shrink:0; background:linear-gradient(135deg,var(--gold-dim),var(--gold)); display:flex; align-items:center; justify-content:center; font-size:1rem; font-weight:700; color:var(--dark); border:2px solid rgba(212,160,23,.45); overflow:hidden; }
+.app-header .tb-user-info { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.app-header .tg-name { font-family:'Cinzel',serif; font-size:.82rem; font-weight:700; color:var(--cream); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px; }
+.app-header .tb-balance { font-size:.68rem; font-weight:700; color:var(--green); letter-spacing:.04em; }
+.app-header .tb-bal-refresh { background:none; border:none; color:rgba(76,222,128,.6); font-size:.75rem; cursor:pointer; padding:0 2px; line-height:1; transition:transform .3s,color .2s; }
+.app-header .tb-bal-refresh:hover { color:var(--green); }
+.app-header .tb-bal-refresh.spinning { animation:balSpin .7s linear infinite; }
+.app-header .tb-right { display:flex; align-items:center; gap:6px; flex-shrink:0; margin-left:auto; }
+.app-header .tb-logo { display:flex; align-items:center; gap:5px; font-family:'Cinzel',serif; font-weight:900; font-size:.9rem; letter-spacing:.18em; color:var(--gold); flex-shrink:0; }
+.app-header .tb-icon-btn { width:32px; height:32px; border-radius:9px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); display:flex; align-items:center; justify-content:center; font-size:.85rem; cursor:pointer; }
+.app-header .tb-countdown { display:flex; flex-direction:column; align-items:center; gap:2px; flex-shrink:0; }
+.app-header .cd-ring { position:relative; width:40px; height:40px; border:3px solid var(--gold); border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.app-header .cd-num { position:static; display:block; font-family:'Cinzel',serif; font-size:.8rem; font-weight:900; color:var(--gold); }
+.app-header .cd-label { font-size:.5rem; letter-spacing:.1em; text-transform:uppercase; color:var(--text-3); font-weight:600; }
+.app-header .ludo-logo { position:absolute; left:50%; transform:translateX(-50%); }
+
 @media (max-width:700px) {
   .hdr-btn-text { display:none; }
   .hdr-right { gap:4px; }
@@ -1437,7 +1463,6 @@ button { cursor: pointer; font-family: inherit; }
   .quick-play-row { grid-template-columns: 1fr; }
   .wallet-top { grid-template-columns: 1fr; }
   .game-layout { grid-template-columns: 1fr; height: auto; }
-  .hdr-left { display: none; }
   .op-subtitle { display: none; }
 }
 @media (max-width: 600px) {
