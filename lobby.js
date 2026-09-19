@@ -79,19 +79,24 @@ async function initAuth() {
 // ── Socket ─────────────────────────────────────────────────────────────────
 function connectSocket() {
   const socket = io(LUDO_API_URL, {
-    transports       : ['websocket', 'polling'],
+    transports          : ['websocket', 'polling'],
     reconnectionAttempts: 8,
   });
   state.socket = socket;
 
   socket.on('connect', () => {
     console.log('[lobby] connected', socket.id);
-    if (state.selectedBet) _doSubscribe(state.selectedBet);
+    // Always re-subscribe on (re)connect if a bet is selected
+    if (state.selectedBet) {
+      state.subscribedBet = null; // force re-subscribe
+      _doSubscribe(state.selectedBet);
+    }
   });
 
   socket.on('disconnect', () => {
     console.warn('[lobby] disconnected');
     state.currentRoomId = null;
+    state.subscribedBet = null; // clear so reconnect re-subscribes
   });
 
   // Full snapshot of all 5 rooms for the subscribed tier
@@ -156,17 +161,21 @@ function connectSocket() {
 }
 
 function _doSubscribe(betAmount) {
-  if (!state.socket?.connected) return;
+  // Guard: only skip if already subscribed to this bet AND socket is connected
+  if (state.subscribedBet === betAmount && state.socket?.connected) return;
+  if (!state.socket?.connected) return; // will retry on 'connect' event
   state.subscribedBet = betAmount;
   state.socket.emit('subscribe:bet', { betAmount });
 }
 
 function subscribeToBet(betAmount) {
+  // Leave any current room
   if (state.currentRoomId) {
     state.socket?.emit('room:leave');
     state.currentRoomId = null;
   }
-  state.subscribedBet = null; // allow re-subscribe
+  // Clear subscription so _doSubscribe won't skip
+  state.subscribedBet = null;
   _doSubscribe(betAmount);
 }
 
@@ -179,18 +188,19 @@ document.querySelectorAll('.bet-chip').forEach(btn => {
     btn.classList.add('selected');
 
     // Clear stale rooms from previous tier
-    state.rooms      = {};
+    state.rooms       = {};
     state.selectedBet = amt;
 
-    // Always show rooms section — even before socket responds
+    // Always show rooms section immediately
     $('roomsEmptyState').classList.add('hidden');
     $('roomsHeader').classList.remove('hidden');
     $('roomsTitle').textContent = `AVAILABLE ROOMS — ${amt} ETB`;
 
-    // Show skeleton cards immediately so the UI doesn't look empty
+    // Show skeleton cards right away so the UI is never blank
     showSkeletons();
 
-    // Subscribe (will trigger rooms:snapshot from backend)
+    // Subscribe — works whether socket is already connected or still connecting.
+    // If not connected yet, the 'connect' event handler will call _doSubscribe.
     subscribeToBet(amt);
   });
 });
@@ -225,11 +235,9 @@ function showSkeletons() {
 function renderRooms() {
   const grid = $('roomsGrid');
   if (!grid) return;
-  grid.innerHTML = '';
 
   const myName = state.player.name;
 
-  // Sort: rooms I'm in first, then by player count desc, started last
   const sorted = Object.values(state.rooms)
     .filter(r => r.betAmount === state.selectedBet)
     .sort((a, b) => {
@@ -241,23 +249,28 @@ function renderRooms() {
       return b.players.length - a.players.length;
     });
 
-  if (sorted.length === 0) {
-    // Socket hasn't responded yet — keep skeletons
-    showSkeletons();
-    return;
-  }
+  // No real data yet — keep the skeleton cards visible, don't wipe them
+  if (sorted.length === 0) return;
 
+  // We have real data — replace everything
+  grid.innerHTML = '';
   sorted.forEach(room => grid.appendChild(buildRoomCard(room)));
   updateReadyCount();
 }
 
 function renderOneRoom(roomId) {
-  const existing = document.querySelector(`[data-room-id="${roomId}"]`);
-  const room     = state.rooms[roomId];
+  const room = state.rooms[roomId];
   if (!room) return;
-  if (existing) {
-    existing.replaceWith(buildRoomCard(room));
+
+  // Replace skeleton OR existing real card
+  const existing = document.querySelector(`[data-room-id="${roomId}"], [data-skeleton-room]`);
+  const card     = document.querySelector(`[data-room-id="${roomId}"]`);
+
+  if (card) {
+    // Replace the specific real card
+    card.replaceWith(buildRoomCard(room));
   } else {
+    // We have skeletons — do a full render now that we have real data
     renderRooms();
   }
 }
