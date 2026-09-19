@@ -1662,14 +1662,17 @@ function buildOnlineRoomCard(room) {
     }
   };
 
+  card.classList.add('collapsed');
+  roomDetails.hidden = true;
   if (toggleBtn) {
+    toggleBtn.textContent = '▸';
+    toggleBtn.setAttribute('aria-expanded', 'false');
     toggleBtn.addEventListener('click', (event) => {
       event.stopPropagation();
       toggleDetails();
     });
   }
 
-  roomDetails.hidden = false;
   return card;
 }
 
