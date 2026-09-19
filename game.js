@@ -45,6 +45,7 @@ const player = {
   balance:   saved.balance   || 500,
   wins:      saved.wins      || 0,
   losses:    saved.losses    || 0,
+  draws:     saved.draws     || 0,
   totalWon:  saved.totalWon  || 0,
   totalLost: saved.totalLost || 0
 };
@@ -724,6 +725,7 @@ function saveStateBack() {
   state.balance   = player.balance;
   state.wins      = player.wins;
   state.losses    = player.losses;
+  state.draws     = player.draws || 0;
   state.totalWon  = player.totalWon;
   state.totalLost = player.totalLost;
   sessionStorage.setItem('ludoGameState', JSON.stringify(state));

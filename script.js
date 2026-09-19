@@ -52,6 +52,7 @@ const S = {
     balance: 500,
     wins: 7,
     losses: 3,
+    draws: 0,
     totalWon: 0,
     totalLost: 0
   },
@@ -235,6 +236,7 @@ document.querySelectorAll('.nav-tab').forEach(item => {
     if (saved.balance !== undefined) S.player.balance = saved.balance;
     if (saved.wins !== undefined) S.player.wins = saved.wins;
     if (saved.losses !== undefined) S.player.losses = saved.losses;
+    if (saved.draws !== undefined) S.player.draws = saved.draws;
   }
 
   if (window.Telegram && window.Telegram.WebApp) {
