@@ -254,9 +254,7 @@ document.querySelectorAll('.nav-tab').forEach(item => {
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
     try { tg.expand(); } catch(e) {}
-    tg.MainButton.setText('Play Now');
-    tg.MainButton.show();
-    tg.MainButton.onClick(() => { if (aiEnabled) goToGame('AI'); });
+    tg.MainButton?.hide?.();
   }
   syncProfile();
   window.XO_USERNAME = S.player.name;
