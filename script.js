@@ -293,7 +293,7 @@ async function refreshBalance(silent = false) {
 
 function syncBalance() {
   const b = S.player.balance;
-  $('headerBalance').textContent = formatMoney(b);
+  $('headerBalance').textContent = '💰 ' + Number(b || 0).toLocaleString();
   const wbal = $('walletBalance'); if(wbal) wbal.textContent = '$' + b.toFixed(2);
   const mhbal = $('mhBalance'); if(mhbal) mhbal.textContent = formatMoney(b);
 }
@@ -1357,7 +1357,8 @@ async function renderOnlineBar() {
     const data = await response.json();
     const current = String(S.player.name || '').trim().toLowerCase();
     const players = (Array.isArray(data) ? data : data?.data || [])
-      .filter(player => !player.is_demo && !player.is_ai)
+      .filter(player => ![1, '1', true, 'true'].includes(player.is_demo))
+      .filter(player => ![1, '1', true, 'true'].includes(player.is_ai))
       .filter(player => String(player.name || '').trim().toLowerCase() !== current);
 
     if (countBadge) countBadge.textContent = `${players.length} Online`;
