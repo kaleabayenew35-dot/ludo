@@ -190,32 +190,39 @@
   border-color: var(--green);
   box-shadow: 0 0 18px rgba(54,232,156,.14);
 }
+.room-card.has-players {
+  border-color: rgba(78,148,255,.35);
+}
 .room-card.started {
   opacity: .5;
   pointer-events: none;
 }
+/* skeleton pulse while loading */
+.room-skeleton {
+  animation: livePulse 1.2s ease-in-out infinite;
+}
 
-/* Card top row */
-.room-card-top {
+/* ── Status badge ────────────────────────────────────── */
+.room-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--r-pill);
+  letter-spacing: .06em;
+  white-space: nowrap;
+}
+.status-waiting   { background: rgba(255,255,255,.06); color: var(--text-3); border: 1px solid var(--border); }
+.status-countdown { background: rgba(240,177,51,.14);  color: var(--gold);   border: 1px solid rgba(240,177,51,.3); }
+.status-started   { background: rgba(255,68,101,.14);  color: var(--red);    border: 1px solid rgba(255,68,101,.3); }
+
+/* ── Countdown bar ───────────────────────────────────── */
+.room-cd-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 10px;
+  margin: 8px 0 4px;
 }
-.room-card-id {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-3);
-  letter-spacing: .08em;
-}
-.room-card-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-2);
-}
-.room-card-count strong { color: var(--text-1); }
-
-/* Countdown pill */
+/* Countdown pill (inside cd-row) */
 .room-countdown-pill {
   display: flex;
   align-items: center;
@@ -227,14 +234,76 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--gold);
-  transition: all .3s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .room-countdown-pill.urgent {
   background: rgba(255,68,101,.15);
   border-color: rgba(255,68,101,.35);
   color: var(--red);
 }
-.room-countdown-pill.hidden-vis { visibility: hidden; }
+.room-cd-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.room-cd-fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: 4px;
+  transition: width 1s linear;
+}
+.room-cd-fill.urgent { background: var(--red); }
+
+/* ── In-game badge ───────────────────────────────────── */
+.room-ingame-badge {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-3);
+  padding: 8px;
+  border-radius: var(--r);
+  background: var(--bg-3);
+  border: 1px dashed var(--border);
+}
+
+/* ── Waiting message (solo player) ──────────────────── */
+.room-wait-msg {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: var(--r);
+  background: rgba(78,148,255,.07);
+  border: 1px dashed rgba(78,148,255,.25);
+  font-size: 12px;
+  color: var(--blue);
+  text-align: center;
+}
+
+/* Card top row */
+.room-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.room-card-id {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: .08em;
+}
+.room-card-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  flex: 1;
+  text-align: center;
+}
+.room-card-count strong { color: var(--text-1); }
 
 /* Players list */
 .room-players-list {
