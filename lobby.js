@@ -1,16 +1,14 @@
-'use strict';
-/**
- * lobby.js — Bet Room Lobby
+/* lobby.js — Bet Room Lobby
  *
  * Flow:
- *  1. Player picks a bet amount → 5 rooms show immediately (all empty to start)
- *  2. Rooms subscribe via socket and update live
- *  3. Player taps Join on any room → added even if they're the FIRST player (1/4)
- *  4. Countdown starts once 2nd player joins; resets on each new join
- *  5. On room:started → redirect to game.html with matched players
+ *  1. Player picks a bet amount → 5 rooms show immediately (skeletons → real)
+ *  2. Socket subscribes to that tier, backend sends rooms:snapshot
+ *  3. Player taps Join → added even as first player (1/4)
+ *  4. Countdown starts at 2nd player, resets on each new join
+ *  5. On room:started → redirect to game.html
+ *
+ * socket.io loaded via <script> tag in lobby.html — `io` is a global.
  */
-
-import { io } from 'https://cdn.socket.io/4.7.4/socket.io.esm.min.js';
 
 // ── Config ─────────────────────────────────────────────────────────────────
 const LUDO_API_URL       = (window.__LUDO_BACKEND_URL__   || 'https://ludo-backend-g2ir.onrender.com').replace(/\/$/, '');
