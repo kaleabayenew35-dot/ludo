@@ -259,6 +259,7 @@ button { cursor: pointer; font-family: inherit; }
 /* Dashboard proportions aligned with XO/Dama */
 .app-header { height:64px; background:rgba(13,13,13,.9); border-bottom:1px solid rgba(212,160,23,.14); backdrop-filter:blur(14px); }
 .mini-header { height:44px; background:rgba(10,10,10,.82); border-bottom:1px solid rgba(212,160,23,.1); }
+.mini-header { justify-content:flex-start; }
 .app-body { background:radial-gradient(ellipse at 25% 20%,#1a0f00 0%,#0d0d0d 62%); }
 .online-players-bar { margin:10px 12px 0; border:1px solid rgba(255,255,255,.07); border-radius:var(--radius); background:rgba(28,28,28,.72); overflow:hidden; }
 .op-header { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06); }
