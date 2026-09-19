@@ -17,7 +17,7 @@
    socket.io loaded as global via <script> in lobby.html.
    ================================================================ */
 
-var LUDO_API_URL       = (window.__LUDO_BACKEND_URL__   || 'https://ludo-backend-g2ir.onrender.com').replace(/\/$/, '');
+var LUDO_API_URL       = (window.__LUDO_BACKEND_URL__   || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 var SYSTEM_BACKEND_URL = (window.__SYSTEM_BACKEND_URL__ || 'https://system-backend-1u5m.onrender.com').replace(/\/$/, '');
 var POLL_MS            = 4000; // HTTP poll interval as fallback when no socket
 

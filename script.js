@@ -86,7 +86,7 @@ const S = {
 const COLORS = ['red','blue','green','yellow'];
 const COLOR_EMOJIS = { red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡' };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
-const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-g2ir.onrender.com').replace(/\/$/, '');
+const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 const SYSTEM_BACKEND_URL = (window.__SYSTEM_BACKEND_URL__ || 'https://system-backend-1u5m.onrender.com').replace(/\/$/, '');
 let aiEnabled = false;
 
