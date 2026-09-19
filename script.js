@@ -132,6 +132,22 @@ const ONLINE_PLAYERS = [
 const $ = id => document.getElementById(id);
 const make = (tag, cls) => { const el = document.createElement(tag); if (cls) el.className = cls; return el; };
 
+function goToGame(opponentName) {
+  if ((opponentName || 'AI') === 'AI' && window.__LUDO_AI_ENABLED__ !== true) return;
+  const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+  const state = {
+    name: S.player.name, balance: S.player.balance, wins: S.player.wins, losses: S.player.losses,
+    totalWon: S.player.totalWon, totalLost: S.player.totalLost,
+    selectedAmount: S.selectedAmount || 10, opponent: { name: opponentName || 'AI' }, autoStart: true,
+  };
+  sessionStorage.setItem('ludoGameState', JSON.stringify(state));
+  const params = new URLSearchParams();
+  if (auth.token) params.set('token', auth.token);
+  if (auth.launch) params.set('launch', auth.launch);
+  window.location.href = `game.html${params.toString() ? '?' + params.toString() : ''}`;
+}
+window.goToGame = goToGame;
+
 function toast(msg, type = 'info') {
   const t = make('div', `toast ${type}`);
   const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
@@ -229,6 +245,12 @@ document.querySelectorAll('.nav-tab').forEach(item => {
     tg.MainButton.onClick(() => { if (aiEnabled) goToGame('AI'); });
   }
   syncProfile();
+  const loader = document.getElementById('loader');
+  if (loader) {
+    loader.style.opacity = '0';
+    loader.style.transition = 'opacity .4s ease';
+    setTimeout(() => { loader.style.display = 'none'; }, 400);
+  }
 })();
 
 function syncProfile() {
@@ -274,6 +296,11 @@ function renderDashboard() {
   // Right Panel Stats
   const rpw = $('rpWins'); if (rpw) rpw.textContent = wins;
   const rpl = $('rpLosses'); if (rpl) rpl.textContent = losses;
+  const rpd = $('rpDraws'); if (rpd) rpd.textContent = S.player.draws || 0;
+  const rpr = $('rpWinRate'); if (rpr) {
+    const totalGames = wins + losses + (S.player.draws || 0);
+    rpr.textContent = totalGames ? Math.round(wins / totalGames * 100) + '%' : '0%';
+  }
 
   // Mini History on Dashboard
   const miniHist = $('miniHistory');
@@ -1139,16 +1166,16 @@ if (welcomeDice) {
 // Ludo room rules: 1 host (required) + 0–3 invited = 1–4 players total
 const ONLINE_PLAYERS_EXTENDED = [
   {
-    name: 'Alice', wins: 12, losses: 3,  balance: 250, color: '#7c6af7', status: 'idle',
+    name: 'Alice', wins: 12, losses: 3, draws: 2, betAmount: 10, balance: 250, color: '#7c6af7', status: 'idle',
     gameRoom: null
   },
   {
-    name: 'Bob',   wins: 8,  losses: 5,  balance: 180, color: '#f0b133', status: 'idle',
+    name: 'Bob',   wins: 8,  losses: 5, draws: 1, betAmount: 50, balance: 180, color: '#f0b133', status: 'idle',
     gameRoom: null
   },
   {
     // 1 player total: host only (minimum valid room)
-    name: 'Carol', wins: 20, losses: 4,  balance: 420, color: '#36e89c', status: 'playing',
+    name: 'Carol', wins: 20, losses: 4, draws: 4, betAmount: 100, balance: 420, color: '#36e89c', status: 'playing',
     gameRoom: {
       id: '#48291',
       players: [
@@ -1157,16 +1184,16 @@ const ONLINE_PLAYERS_EXTENDED = [
     }
   },
   {
-    name: 'Dave',  wins: 5,  losses: 8,  balance: 110, color: '#ff4465', status: 'waiting',
+    name: 'Dave',  wins: 5,  losses: 8, draws: 2, betAmount: 250, balance: 110, color: '#ff4465', status: 'waiting',
     gameRoom: null
   },
   {
-    name: 'Eva',   wins: 15, losses: 6,  balance: 310, color: '#4e94ff', status: 'idle',
+    name: 'Eva',   wins: 15, losses: 6, draws: 5, betAmount: 500, balance: 310, color: '#4e94ff', status: 'idle',
     gameRoom: null
   },
   {
     // 2 players total: 1 host + 1 invited
-    name: 'Frank', wins: 3,  losses: 10, balance: 90,  color: '#a89cf5', status: 'playing',
+    name: 'Frank', wins: 3,  losses: 10, draws: 0, betAmount: 10, balance: 90, color: '#a89cf5', status: 'playing',
     gameRoom: {
       id: '#73104',
       players: [
@@ -1340,7 +1367,7 @@ function renderOnlineBar() {
           </div>
         </div>
       </td>
-      <td><span class="ot-balance">$${p.betAmount}</span></td>
+      <td><span class="ot-stats-badges"><b>${p.wins}W</b><b>${p.draws || 0}D</b><b>${p.losses}L</b></span></td>
       <td>
         <span class="ot-status ${p.status}">
           <span class="ot-status-dot"></span>${statusLabel}

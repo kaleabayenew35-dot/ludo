@@ -3,8 +3,8 @@ services:
     name: ludo-frontend
     runtime: node
     rootDir: ludo_frontend
-    buildCommand: yarn install
-    startCommand: yarn start
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 24.21.0

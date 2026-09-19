@@ -697,6 +697,7 @@ function endGame(playerWon, winnerColor) {
   if (playerWon) {
     const gain = bet * 2; player.balance += gain; player.wins++; player.totalWon += gain;
     $('winMsg').textContent = `You earned ${formatMoney(gain)}!`;
+    $('winAmount').textContent = `+${gain} ETB`;
     showOverlay('winModal');
     spawnConfetti();
   } else {
@@ -704,8 +705,14 @@ function endGame(playerWon, winnerColor) {
     player.losses++; player.totalLost += bet;
     const w = winnerColor ? winnerColor : 'AI';
     $('loseMsg').textContent = `${w.charAt(0).toUpperCase()+w.slice(1)} wins. You lost ${formatMoney(bet)}.`;
+    $('loseAmount').textContent = `−${bet} ETB`;
     showOverlay('loseModal');
   }
+  let seconds = 3;
+  const modalId = playerWon ? 'winModal' : 'loseModal';
+  const text = $(playerWon ? 'winCountdownText' : 'loseCountdownText');
+  const timer = setInterval(() => { seconds--; if (text) text.textContent = seconds > 0 ? `Closing in ${seconds}s` : 'Closing…'; }, 1000);
+  setTimeout(() => { clearInterval(timer); hideOverlay(modalId); window.location.href = 'index.html'; }, 3000);
   syncHeader();
   saveStateBack();
   // Fire‑and‑forget persistence
@@ -748,6 +755,8 @@ $('loseContinueBtn').addEventListener('click', () => {
   resetGame();
   startGame();
 });
+$('winCloseBtn')?.addEventListener('click', () => { hideOverlay('winModal'); window.location.href = 'index.html'; });
+$('loseCloseBtn')?.addEventListener('click', () => { hideOverlay('loseModal'); window.location.href = 'index.html'; });
 
 // ── Init ──────────────────────────────────────────────────────
 buildBoard();

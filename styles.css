@@ -1,5 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
 
+/* Shared XO/Dama visual system */
+:root {
+  --gold:#d4a017; --gold-light:#f0c94a; --gold-dim:#a07810;
+  --dark:#0d0d0d; --dark-3:#1c1c1c; --cream:#f5e6c8;
+  --green:#4cde80; --red-light:#e74c3c; --radius:14px;
+  --transition:.3s cubic-bezier(.4,0,.2,1);
+  --bg-0:var(--dark); --bg-1:#111; --bg-2:#151515; --bg-3:#202020;
+  --text-1:var(--cream); --text-2:rgba(245,230,200,.7); --text-3:rgba(245,230,200,.45);
+}
+
 /* ═══════════════════════════════════════════════════
    DESIGN TOKENS
    ═══════════════════════════════════════════════════ */
@@ -48,13 +58,27 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; }
 body {
-  font-family: 'Outfit', system-ui, sans-serif;
-  background: var(--bg-0);
+  font-family: 'Rajdhani', sans-serif;
+  background: var(--dark);
   color: var(--text-1);
   -webkit-font-smoothing: antialiased;
   display: flex;
   flex-direction: column;
+  overscroll-behavior:none;
+  -webkit-user-select:none; user-select:none;
+  -webkit-tap-highlight-color:transparent;
 }
+
+.loader-wrapper { position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.loader-bg { position:absolute; inset:0; background:radial-gradient(ellipse at center,#1a0f00 0%,#0d0d0d 60%,#000 100%); }
+.loader-content { position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; gap:18px; }
+.loader-spinner { width:64px; height:64px; border-radius:50%; border:4px solid rgba(212,160,23,.2); border-top-color:#f0c94a; animation:ludoSpin .9s linear infinite; }
+@keyframes ludoSpin { to { transform:rotate(360deg); } }
+.loader-title { font-family:'Cinzel',serif; font-size:clamp(2.8rem,8vw,5rem); font-weight:900; letter-spacing:.25em; background:linear-gradient(180deg,#fff8e1,#f0c94a 50%,#d4a017); -webkit-background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 18px rgba(212,160,23,.55)); line-height:1; }
+.loader-subtitle { font-size:.88rem; letter-spacing:.25em; text-transform:uppercase; color:rgba(240,201,74,.7); }
+.corner { position:absolute; width:36px; height:36px; border-color:rgba(212,160,23,.5); border-style:solid; }
+.corner.tl { top:18px; left:18px; border-width:2px 0 0 2px; } .corner.tr { top:18px; right:18px; border-width:2px 2px 0 0; }
+.corner.bl { bottom:18px; left:18px; border-width:0 0 2px 2px; } .corner.br { bottom:18px; right:18px; border-width:0 2px 2px 0; }
 ul { list-style: none; }
 button { cursor: pointer; font-family: inherit; }
 
@@ -117,6 +141,12 @@ button { cursor: pointer; font-family: inherit; }
   flex-shrink: 0;
   margin-left: auto;
 }
+.ludo-logo { position:absolute; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:6px; font-family:'Cinzel',serif; font-weight:900; letter-spacing:.16em; color:var(--gold); }
+.ludo-logo-icon { font-size:1.1rem; }
+.hdr-icon-btn { width:34px; height:34px; border-radius:9px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.06); color:var(--cream); font-size:1rem; }
+.ludo-countdown { display:flex; flex-direction:column; align-items:center; gap:1px; }
+.ludo-countdown small { font-size:.48rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.08em; }
+.ludo-countdown-ring { width:34px; height:34px; border-radius:50%; border:3px solid var(--gold); display:grid; place-items:center; color:var(--gold); font-family:'Cinzel',serif; font-weight:900; font-size:.65rem; }
 .hdr-btn-text {
   display: inline-flex;
   align-items: center;
@@ -171,9 +201,8 @@ button { cursor: pointer; font-family: inherit; }
 }
 .amount-btn:hover { border-color: var(--purple); color: var(--text-1); }
 .amount-btn.selected {
-  background: linear-gradient(135deg, var(--purple), var(--purple-dk));
-  border-color: transparent; color: #fff;
-  box-shadow: 0 3px 12px rgba(124,106,247,0.4);
+  background:rgba(212,160,23,.2); border-color:var(--gold); color:var(--gold);
+  box-shadow:0 0 12px rgba(212,160,23,.22);
 }
 .mh-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
 .mh-stat { display: flex; flex-direction: column; align-items: center; line-height: 1.2; }
@@ -214,10 +243,52 @@ button { cursor: pointer; font-family: inherit; }
 }
 .rp-stat-box.green { border-color: rgba(54,232,156,0.18); }
 .rp-stat-box.red   { border-color: rgba(255,68,101,0.18); }
+.rp-stat-box.gold  { border-color: rgba(212,160,23,.25); }
+.rp-stat-box.gold .rp-stat-num { color:var(--gold-light); }
 .rp-stat-num { font-size: 22px; font-weight: 800; }
 .rp-stat-box.green .rp-stat-num { color: var(--green); }
 .rp-stat-box.red   .rp-stat-num { color: var(--red); }
 .rp-stat-lbl { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+.winrate-ring { width:88px; height:88px; margin:2px auto 0; border-radius:50%; border:5px solid rgba(212,160,23,.22); box-shadow:0 0 0 4px rgba(212,160,23,.05), inset 0 0 18px rgba(212,160,23,.12); display:flex; flex-direction:column; align-items:center; justify-content:center; }
+.winrate-value { font-family:'Cinzel',serif; color:var(--gold-light); font-weight:900; font-size:1.1rem; }
+.winrate-ring span { color:var(--text-3); font-size:.55rem; text-transform:uppercase; letter-spacing:.08em; }
+
+/* Dashboard proportions aligned with XO/Dama */
+.app-header { height:64px; background:rgba(13,13,13,.9); border-bottom:1px solid rgba(212,160,23,.14); backdrop-filter:blur(14px); }
+.mini-header { height:44px; background:rgba(10,10,10,.82); border-bottom:1px solid rgba(212,160,23,.1); }
+.app-body { background:radial-gradient(ellipse at 25% 20%,#1a0f00 0%,#0d0d0d 62%); }
+.online-players-bar { margin:10px 12px 0; border:1px solid rgba(255,255,255,.07); border-radius:var(--radius); background:rgba(28,28,28,.72); overflow:hidden; }
+.op-header { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,.06); }
+.op-title { font-family:'Cinzel',serif; color:var(--cream); }
+.op-subtitle { color:var(--text-3); }
+.online-table-wrapper { max-height:calc(100vh - 210px); overflow:auto; }
+.online-table { width:100%; border-collapse:separate; border-spacing:0 6px; padding:0 10px 8px; }
+.online-table thead { display:none; }
+.online-table tbody tr { background:var(--dark-3); }
+.online-table td { border-top:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); padding:9px 8px; color:var(--cream); font-size:.78rem; }
+.online-table td:first-child { border-left:1px solid rgba(255,255,255,.07); border-radius:10px 0 0 10px; }
+.online-table td:last-child { border-right:1px solid rgba(255,255,255,.07); border-radius:0 10px 10px 0; }
+.online-table button { background:linear-gradient(135deg,var(--gold-dim),var(--gold)); color:var(--dark); border:0; border-radius:8px; padding:5px 10px; font-weight:800; }
+.ot-stats-badges { display:flex; gap:3px; white-space:nowrap; }
+.ot-stats-badges b { font-size:.58rem; padding:2px 5px; border-radius:99px; }
+.ot-stats-badges b:nth-child(1) { color:var(--green); background:rgba(76,222,128,.1); }
+.ot-stats-badges b:nth-child(2) { color:var(--gold-light); background:rgba(212,160,23,.1); }
+.ot-stats-badges b:nth-child(3) { color:var(--red-light); background:rgba(231,76,60,.1); }
+.right-panel { background:rgba(17,17,17,.86); border-left:1px solid rgba(212,160,23,.1); }
+.rp-room-block { display:none; }
+
+@media (max-width:700px) {
+  .hdr-btn-text { display:none; }
+  .hdr-right { gap:4px; }
+  .ludo-logo { font-size:.78rem; }
+  .right-panel { width:128px; }
+  .rp-block { padding:12px 8px; }
+  .rp-stats-row { gap:4px; flex-wrap:wrap; }
+  .rp-stat-box { min-width:45%; padding:8px 3px; }
+  .rp-stat-num { font-size:16px; }
+  .main-content { padding:8px; }
+}
 
 /* ═══════════════════════════════════════════════════
    RIGHT PANEL — GAME ROOM / LOBBY
