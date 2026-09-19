@@ -86,6 +86,7 @@ const COLORS = ['red','blue','green','yellow'];
 const COLOR_EMOJIS = { red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡' };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-g2ir.onrender.com').replace(/\/$/, '');
+const SYSTEM_BACKEND_URL = (window.__SYSTEM_BACKEND_URL__ || 'https://system-backend-1u5m.onrender.com').replace(/\/$/, '');
 let aiEnabled = false;
 
 async function loadAiConfig() {
@@ -184,7 +185,7 @@ document.querySelectorAll('.nav-tab').forEach(item => {
 });
 
 // ─── URL PARAMS & AUTH INIT ──────────────────────────────────
-(function checkAccess() {
+(async function checkAccess() {
   if (!document.getElementById('appHeader')) return;
 
   const params = new URLSearchParams(window.location.search);
@@ -215,6 +216,34 @@ document.querySelectorAll('.nav-tab').forEach(item => {
       </div>
     `;
     throw new Error('Access Denied: Missing URL parameters.');
+  }
+
+  // Resolve the launch token against system_backend so the profile and balance
+  // always reflect the real account, rather than URL or session values.
+  if (authData.launch) {
+    try {
+      const response = await fetch(`${SYSTEM_BACKEND_URL}/api/verify-launch-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ launch: authData.launch }),
+        cache: 'no-store',
+      });
+      const resolved = await response.json().catch(() => ({}));
+      if (!response.ok || resolved.valid === false) {
+        throw new Error(resolved.reason || `HTTP ${response.status}`);
+      }
+      authData.username = resolved.username || resolved.user?.username || authData.username;
+      authData.balance = resolved.balance ?? resolved.user?.balance ?? authData.balance;
+      authData.phonenumber = resolved.phone || resolved.user?.phone || authData.phonenumber;
+      sessionStorage.setItem('appAuth', JSON.stringify(authData));
+      window.XO_USERNAME = authData.username;
+      window.XO_BALANCE = Number(authData.balance ?? 0);
+    } catch (error) {
+      console.error('[Ludo] Failed to resolve real system account', error);
+      if (!hasLegacyAuth && (authData.balance === undefined || authData.balance === null)) {
+        throw new Error('Could not load your account from system_backend.');
+      }
+    }
   }
 
   S.player.name = authData.username || 'Player';
@@ -282,7 +311,24 @@ async function refreshBalance(silent = false) {
   }
   try {
     const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+    if (auth.launch) {
+      const response = await fetch(`${SYSTEM_BACKEND_URL}/api/verify-launch-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ launch: auth.launch }),
+        cache: 'no-store',
+      });
+      const resolved = await response.json().catch(() => ({}));
+      if (!response.ok || resolved.valid === false) throw new Error(resolved.reason || `HTTP ${response.status}`);
+      auth.username = resolved.username || resolved.user?.username || auth.username;
+      auth.balance = resolved.balance ?? resolved.user?.balance ?? auth.balance;
+      sessionStorage.setItem('appAuth', JSON.stringify(auth));
+      S.player.name = auth.username || S.player.name;
+      syncProfile();
+    }
     if (auth.balance !== undefined && auth.balance !== null) updateBalanceDisplay(auth.balance);
+  } catch (error) {
+    if (!silent) console.error('[Ludo] Failed to refresh system balance', error);
   } finally {
     if (!silent) {
       spinner?.classList.add('hidden');
