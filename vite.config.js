@@ -7,7 +7,7 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: true,
     rollupOptions: {
-      input: { dashboard: 'index.html', game: 'game.html' },
+      input: { dashboard: 'index.html', game: 'game.html', lobby: 'lobby.html' },
     },
   },
   server: {

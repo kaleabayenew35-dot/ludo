@@ -1645,6 +1645,19 @@ document.querySelectorAll('[data-close]').forEach(btn => {
   btn.addEventListener('click', () => hideOverlay(btn.dataset.close));
 });
 
+// ─── OPEN LOBBY BUTTON ───────────────────────────────────────
+const openLobbyBtn = $('openLobbyBtn');
+if (openLobbyBtn) {
+  openLobbyBtn.addEventListener('click', () => {
+    const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+    const params = new URLSearchParams();
+    if (auth.token)  params.set('token',  auth.token);
+    if (auth.launch) params.set('launch', auth.launch);
+    if (S.selectedAmount) params.set('bet', S.selectedAmount);
+    window.location.href = `lobby.html${params.toString() ? '?' + params.toString() : ''}`;
+  });
+}
+
 // ─── INIT ────────────────────────────────────────────────────
 (function init() {
   if (document.getElementById('ludoBoard')) {

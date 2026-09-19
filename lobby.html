@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#06071a">
+  <title>Ludo — Bet Lobby</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="lobby.css">
+</head>
+<body class="lobby-page">
+
+  <!-- ── HEADER ── -->
+  <header class="lobby-header">
+    <button class="lobby-back-btn" id="lobbyBackBtn" type="button">← Back</button>
+    <div class="lobby-header-center">
+      <span class="lobby-header-icon">🎲</span>
+      <span class="lobby-header-title">LUDO LOBBY</span>
+    </div>
+    <div class="lobby-header-right">
+      <span class="lobby-balance-label">Balance</span>
+      <span class="lobby-balance-val" id="lobbyBalance">—</span>
+      <span class="lobby-balance-unit">ETB</span>
+    </div>
+  </header>
+
+  <!-- ── BET AMOUNT PICKER ── -->
+  <section class="bet-picker-section">
+    <div class="bet-picker-label">SELECT BET AMOUNT</div>
+    <div class="bet-picker-row" id="betPickerRow">
+      <button class="bet-chip" data-amount="10">10<span class="bet-chip-unit">ETB</span></button>
+      <button class="bet-chip" data-amount="50">50<span class="bet-chip-unit">ETB</span></button>
+      <button class="bet-chip" data-amount="100">100<span class="bet-chip-unit">ETB</span></button>
+      <button class="bet-chip" data-amount="250">250<span class="bet-chip-unit">ETB</span></button>
+      <button class="bet-chip" data-amount="500">500<span class="bet-chip-unit">ETB</span></button>
+    </div>
+  </section>
+
+  <!-- ── ROOMS SECTION ── -->
+  <section class="rooms-section" id="roomsSection">
+
+    <div class="rooms-empty-state" id="roomsEmptyState">
+      <div class="rooms-empty-icon">🎯</div>
+      <div class="rooms-empty-text">Select a bet amount above to see available rooms</div>
+    </div>
+
+    <div class="rooms-header hidden" id="roomsHeader">
+      <div class="rooms-header-left">
+        <span class="rooms-live-dot"></span>
+        <span class="rooms-title" id="roomsTitle">READY PLAYERS — 10 ETB</span>
+      </div>
+      <div class="rooms-header-right">
+        <span class="rooms-status-dot" id="roomsStatusDot"></span>
+        <span class="rooms-ready-count" id="roomsReadyCount">0 Ready</span>
+      </div>
+    </div>
+
+    <div class="rooms-grid" id="roomsGrid"></div>
+
+  </section>
+
+  <!-- ── JOINING OVERLAY ── -->
+  <div class="overlay" id="joiningOverlay" aria-hidden="true">
+    <div class="joining-box">
+      <div class="joining-spinner"></div>
+      <div class="joining-title">Joining Room…</div>
+      <div class="joining-sub" id="joiningRoomLabel">Room #—</div>
+      <button class="btn-ghost joining-cancel" id="joiningCancelBtn" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ── GAME STARTING OVERLAY ── -->
+  <div class="overlay" id="gameStartingOverlay" aria-hidden="true">
+    <div class="joining-box">
+      <div class="start-pulse">▶</div>
+      <div class="joining-title" style="color:var(--green)">Game Starting!</div>
+      <div class="joining-sub" id="startingPlayersList">Loading players…</div>
+    </div>
+  </div>
+
+  <!-- ── TOAST ── -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <script type="module" src="lobby.js"></script>
+</body>
+</html>
