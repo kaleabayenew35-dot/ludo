@@ -1617,6 +1617,18 @@ button { cursor: pointer; font-family: inherit; }
 .or-room-card.collapsed {
   padding-bottom: 8px;
 }
+.or-room-card.collapsed .or-main-action,
+.or-room-card.collapsed .or-room-details {
+  display: none;
+}
+.or-room-card.collapsed .or-room-summary {
+  margin-bottom: 0;
+  padding: 4px 8px;
+  font-size: 10px;
+}
+.or-room-card.collapsed .or-room-top {
+  margin-bottom: 4px;
+}
 .or-skeleton { animation: livePulse 1.2s ease-in-out infinite; }
 
 /* top row */

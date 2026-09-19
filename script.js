@@ -1549,14 +1549,16 @@ function buildOnlineRoomCard(room) {
       <span>${safeRoom.betAmount} ETB</span>
       <span>${compactSummary}</span>
     </div>
-    <div class="or-main-action"></div>
-    <div class="or-room-details">
-      ${safeRoom.status === 'countdown' && safeRoom.countdown > 0 ? `
-      <div class="or-cd-row">
-        <span class="or-cd-pill${safeRoom.countdown <= 8 ? ' urgent' : ''}">⏱ ${safeRoom.countdown}s</span>
-        <div class="or-cd-bar"><div class="or-cd-fill${safeRoom.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(safeRoom.countdown/30*100)}%"></div></div>
-      </div>` : ''}
-    </div>`;
+    <div class="or-main-action"></div>`;
+
+  const roomDetails = make('div', 'or-room-details');
+  if (safeRoom.status === 'countdown' && safeRoom.countdown > 0) {
+    const cdRow = make('div', 'or-cd-row');
+    cdRow.innerHTML = `
+      <span class="or-cd-pill${safeRoom.countdown <= 8 ? ' urgent' : ''}">⏱ ${safeRoom.countdown}s</span>
+      <div class="or-cd-bar"><div class="or-cd-fill${safeRoom.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(safeRoom.countdown/30*100)}%"></div></div>`;
+    roomDetails.appendChild(cdRow);
+  }
 
   const details = make('div', 'or-room-details-inner');
   const playersList = make('div', 'or-players-list');
@@ -1636,11 +1638,13 @@ function buildOnlineRoomCard(room) {
     actionWrap.appendChild(joinBtn);
   }
 
-  const roomDetails = card.querySelector('.or-room-details');
+  roomDetails.appendChild(details);
+  card.appendChild(roomDetails);
+
   const toggleBtn = card.querySelector('.or-toggle-btn');
   const toggleDetails = () => {
     const collapsed = card.classList.toggle('collapsed');
-    if (roomDetails) roomDetails.hidden = collapsed;
+    roomDetails.hidden = collapsed;
     if (toggleBtn) {
       toggleBtn.textContent = collapsed ? '▸' : '▾';
       toggleBtn.setAttribute('aria-expanded', String(!collapsed));
@@ -1654,7 +1658,7 @@ function buildOnlineRoomCard(room) {
     });
   }
 
-  card.appendChild(details);
+  roomDetails.hidden = false;
   return card;
 }
 
