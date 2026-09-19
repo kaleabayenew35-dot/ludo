@@ -1536,6 +1536,8 @@ function buildOnlineRoomCard(room) {
 
   const statusText = started ? '🎮 In Game' : safeRoom.status === 'countdown' ? '⏳ Starting…' : count === 0 ? '🟢 Empty' : '👥 Open';
   const compactSummary = count === 0 ? 'Create room' : `Join ${count}/4`;
+  const compactCountdown = safeRoom.status === 'countdown' && safeRoom.countdown > 0 ? `Starts in ${safeRoom.countdown}s` : 'Ready now';
+  const compactActionLabel = started ? 'In game' : isFull ? 'Full' : inOther ? 'Busy' : count === 0 ? '+ Create Room' : '+ Join Room';
 
   card.innerHTML = `
     <div class="or-room-top">
@@ -1547,7 +1549,8 @@ function buildOnlineRoomCard(room) {
     <div class="or-room-summary">
       <span>${count} players</span>
       <span>${safeRoom.betAmount} ETB</span>
-      <span>${compactSummary}</span>
+      <span>${compactCountdown}</span>
+      <button type="button" class="or-compact-action-btn" ${started || isFull || inOther ? 'disabled' : ''}>${compactActionLabel}</button>
     </div>
     <div class="or-main-action"></div>`;
 
@@ -1610,6 +1613,7 @@ function buildOnlineRoomCard(room) {
   }
 
   const actionWrap = card.querySelector('.or-main-action');
+  const compactBtn = card.querySelector('.or-compact-action-btn');
 
   if (started) {
     const inGame = make('div', 'or-ingame-msg');
@@ -1636,6 +1640,13 @@ function buildOnlineRoomCard(room) {
       joinBtn.addEventListener('click', () => handleOnlineJoin(safeRoom.id, card));
     }
     actionWrap.appendChild(joinBtn);
+  }
+
+  if (compactBtn && !started && !isFull && !inOther) {
+    compactBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      handleOnlineJoin(safeRoom.id, card);
+    });
   }
 
   roomDetails.appendChild(details);
