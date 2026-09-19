@@ -1436,20 +1436,31 @@ function buildExpandRow(p, colSpan) {
   return tr;
 }
 
+function normalizeRoom(room) {
+  const safeRoom = room && typeof room === 'object' ? { ...room } : {};
+  safeRoom.id = safeRoom.id ?? 'unknown';
+  safeRoom.status = safeRoom.status ?? 'waiting';
+  safeRoom.betAmount = Number.isFinite(Number(safeRoom.betAmount)) ? Number(safeRoom.betAmount) : Number(S.selectedAmount || 0);
+  safeRoom.countdown = Number.isFinite(Number(safeRoom.countdown)) ? Number(safeRoom.countdown) : 0;
+  safeRoom.players = Array.isArray(safeRoom.players) ? safeRoom.players.filter(Boolean) : [];
+  return safeRoom;
+}
+
 async function renderOnlineBar() {
   const countBadge = $('opCount');
   const grid       = $('onlineRoomsGrid');
   const subtitle   = $('opSubtitle');
   if (!grid) return;
 
-  if (!S.selectedAmount) {
+  const selected = Number(S.selectedAmount);
+  if (!Number.isFinite(selected) || selected <= 0) {
     if (countBadge) countBadge.textContent = '0 Ready';
     if (subtitle)   subtitle.textContent   = 'Select a bet amount to see rooms';
     grid.innerHTML = '<div class="or-empty"><span>🎯</span><p>Select a bet amount above to see available rooms</p></div>';
     return;
   }
 
-  if (subtitle) subtitle.textContent = `READY PLAYERS — ${S.selectedAmount} ETB`;
+  if (subtitle) subtitle.textContent = `READY PLAYERS — ${selected} ETB`;
 
   // Show skeletons immediately
   grid.innerHTML = '';
@@ -1457,7 +1468,7 @@ async function renderOnlineBar() {
     const sk = make('div', 'or-room-card or-skeleton');
     sk.innerHTML = `
       <div class="or-room-top">
-        <span class="or-room-id">ROOM #${S.selectedAmount}-${i}</span>
+        <span class="or-room-id">ROOM #${selected}-${i}</span>
         <span class="or-room-count"><strong>0</strong> / 4</span>
         <span class="or-status-badge status-waiting">🟢 Empty</span>
       </div>
@@ -1470,24 +1481,30 @@ async function renderOnlineBar() {
   }
 
   try {
-    const res   = await fetch(`${LUDO_API_URL}/api/rooms?bet=${encodeURIComponent(S.selectedAmount)}`, { cache: 'no-store' });
+    const res   = await fetch(`${LUDO_API_URL}/api/rooms?bet=${encodeURIComponent(selected)}`, { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data  = await res.json();
-    const rooms = data.rooms || [];
+    const rooms = Array.isArray(data && data.rooms) ? data.rooms : [];
 
-    // Count total players across all rooms
-    const totalPlayers = rooms.reduce((s, r) => s + r.players.length, 0);
+    if (!rooms.length) {
+      if (countBadge) countBadge.textContent = '0 Ready';
+      grid.innerHTML = `<div class="or-empty"><span>🎯</span><p>No rooms available at ${selected} ETB yet.<br><small>Share your link to invite others!</small></p></div>`;
+      return;
+    }
+
+    const totalPlayers = rooms.reduce((s, r) => s + (Array.isArray(r?.players) ? r.players.length : 0), 0);
     if (countBadge) countBadge.textContent = `${totalPlayers} Ready`;
 
-    // Sort: rooms I'm in first, then most players, started last
     const myName = String(S.player.name || '').trim().toLowerCase();
     rooms.sort((a, b) => {
-      const aMe = a.players.some(p => p.name.toLowerCase() === myName) ? 1 : 0;
-      const bMe = b.players.some(p => p.name.toLowerCase() === myName) ? 1 : 0;
+      const safeA = normalizeRoom(a);
+      const safeB = normalizeRoom(b);
+      const aMe = safeA.players.some(p => String(p?.name || '').toLowerCase() === myName) ? 1 : 0;
+      const bMe = safeB.players.some(p => String(p?.name || '').toLowerCase() === myName) ? 1 : 0;
       if (aMe !== bMe) return bMe - aMe;
-      if (a.status === 'started') return 1;
-      if (b.status === 'started') return -1;
-      return b.players.length - a.players.length;
+      if (safeA.status === 'started') return 1;
+      if (safeB.status === 'started') return -1;
+      return (safeB.players.length || 0) - (safeA.players.length || 0);
     });
 
     grid.innerHTML = '';
@@ -1502,33 +1519,35 @@ async function renderOnlineBar() {
 
 // ── Build one inline room card ─────────────────────────────────────────────
 function buildOnlineRoomCard(room) {
-  const myName  = String(S.player.name || '').trim().toLowerCase();
-  const iAmHere = room.players.some(p => p.name.toLowerCase() === myName);
-  const count   = room.players.length;
-  const started = room.status === 'started';
-  const isFull  = count >= 4;
-  const inOther = S._joinedRoomId && S._joinedRoomId !== room.id;
+  const safeRoom = normalizeRoom(room);
+  const myName   = String(S.player.name || '').trim().toLowerCase();
+  const players  = safeRoom.players;
+  const count    = players.length;
+  const started  = safeRoom.status === 'started';
+  const isFull   = count >= 4;
+  const inOther  = S._joinedRoomId && S._joinedRoomId !== safeRoom.id;
 
   const COLORS = ['#7c6af7','#f0b133','#36e89c','#ff4465','#4e94ff','#ff9040','#30c0c0'];
 
+  const iAmHere = players.some(p => String(p?.name || '').toLowerCase() === myName);
   const card = make('div', ['or-room-card', iAmHere ? 'or-has-me' : '', started ? 'or-started' : '', count > 0 && !iAmHere ? 'or-has-players' : ''].filter(Boolean).join(' '));
-  card.dataset.roomId = room.id;
+  card.dataset.roomId = safeRoom.id;
 
   // ── Top bar ──────────────────────────────────────────────────────────
-  const statusText = started ? '🎮 In Game' : room.status === 'countdown' ? '⏳ Starting…' : count === 0 ? '🟢 Empty' : '👥 Open';
+  const statusText = started ? '🎮 In Game' : safeRoom.status === 'countdown' ? '⏳ Starting…' : count === 0 ? '🟢 Empty' : '👥 Open';
   card.innerHTML = `
     <div class="or-room-top">
-      <span class="or-room-id">ROOM #${room.id}</span>
+      <span class="or-room-id">ROOM #${safeRoom.id}</span>
       <span class="or-room-count"><strong>${count}</strong> / 4</span>
-      <span class="or-status-badge status-${room.status}">${statusText}</span>
+      <span class="or-status-badge status-${safeRoom.status}">${statusText}</span>
     </div>`;
 
   // Countdown bar
-  if (room.status === 'countdown' && room.countdown > 0) {
+  if (safeRoom.status === 'countdown' && safeRoom.countdown > 0) {
     const cdDiv = make('div', 'or-cd-row');
     cdDiv.innerHTML = `
-      <span class="or-cd-pill${room.countdown <= 8 ? ' urgent' : ''}">⏱ ${room.countdown}s</span>
-      <div class="or-cd-bar"><div class="or-cd-fill${room.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(room.countdown/30*100)}%"></div></div>`;
+      <span class="or-cd-pill${safeRoom.countdown <= 8 ? ' urgent' : ''}">⏱ ${safeRoom.countdown}s</span>
+      <div class="or-cd-bar"><div class="or-cd-fill${safeRoom.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(safeRoom.countdown/30*100)}%"></div></div>`;
     card.appendChild(cdDiv);
   }
 
@@ -1550,21 +1569,22 @@ function buildOnlineRoomCard(room) {
   }
 
   // Other players in the room
-  room.players.filter(p => p.name.toLowerCase() !== myName).forEach((p, idx) => {
+  players.filter(p => String(p?.name || '').toLowerCase() !== myName).forEach((p, idx) => {
     if (iAmHere && idx === 0) {
       const vsDiv = make('div', 'or-vs-row');
       vsDiv.innerHTML = '<div class="or-vs-line"></div><span class="or-vs-badge">VS</span><div class="or-vs-line"></div>';
       playersList.appendChild(vsDiv);
     }
-    const color   = COLORS[Math.abs(hashSimple(p.name)) % COLORS.length];
-    const pRow    = make('div', 'or-player-row');
+    const label = String(p?.name || 'Player');
+    const color = COLORS[Math.abs(hashSimple(label)) % COLORS.length];
+    const pRow  = make('div', 'or-player-row');
     pRow.innerHTML = `
-      <div class="or-avatar" style="background:${color}">${(p.name||'P').charAt(0).toUpperCase()}</div>
+      <div class="or-avatar" style="background:${color}">${label.charAt(0).toUpperCase()}</div>
       <div class="or-player-info">
-        <span class="or-player-name">${p.name} <span class="or-online-tag">Online</span></span>
-        <span class="or-player-stats">✓${p.wins||0} ✗${p.losses||0} 🪙${p.balance||0}</span>
+        <span class="or-player-name">${label} <span class="or-online-tag">Online</span></span>
+        <span class="or-player-stats">✓${p?.wins || 0} ✗${p?.losses || 0} 🪙${p?.balance || 0}</span>
       </div>
-      <span class="or-bet-pill">${room.betAmount} ETB</span>`;
+      <span class="or-bet-pill">${safeRoom.betAmount} ETB</span>`;
     playersList.appendChild(pRow);
   });
 
@@ -1593,11 +1613,11 @@ function buildOnlineRoomCard(room) {
   } else if (iAmHere) {
     const leaveBtn = make('button', 'or-leave-btn');
     leaveBtn.textContent = '✗ Leave Room';
-    leaveBtn.addEventListener('click', () => handleOnlineLeave(room.id, card));
+    leaveBtn.addEventListener('click', () => handleOnlineLeave(safeRoom.id, card));
     card.appendChild(leaveBtn);
-    if (count >= 2 && room.status === 'countdown') {
+    if (count >= 2 && safeRoom.status === 'countdown') {
       const startingMsg = make('div', 'or-starting-msg');
-      startingMsg.innerHTML = `▶ Starting in <strong>${room.countdown}s</strong>…`;
+      startingMsg.innerHTML = `▶ Starting in <strong>${safeRoom.countdown}s</strong>…`;
       card.appendChild(startingMsg);
     }
   } else {
@@ -1608,7 +1628,7 @@ function buildOnlineRoomCard(room) {
       joinBtn.textContent = '⚠ Leave your room first'; joinBtn.disabled = true;
     } else {
       joinBtn.textContent = count === 0 ? '+ Create Room' : `+ Join Room (${count}/4)`;
-      joinBtn.addEventListener('click', () => handleOnlineJoin(room.id, card));
+      joinBtn.addEventListener('click', () => handleOnlineJoin(safeRoom.id, card));
     }
     card.appendChild(joinBtn);
   }

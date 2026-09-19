@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&amp;family=Rajdhani:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
-  <script type="module" crossorigin src="/assets/dashboard-gr1hAYws.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/styles-CzA780fL.js">
-  <link rel="stylesheet" crossorigin href="/assets/styles-BeXDHQIY.css">
+  <script type="module" crossorigin src="/assets/dashboard-Rr_-Vck-.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="stylesheet" crossorigin href="/assets/styles-Ce8bu-mw.css">
 </head>
 <body>
 
@@ -67,7 +67,11 @@
         <button class="amount-btn" data-amount="500">500</button>
       </div>
     </div>
-
+    <div class="mh-right">
+      <button class="mh-lobby-btn" id="openLobbyBtn" type="button" title="Bet Rooms">
+        🏠 Bet Rooms
+      </button>
+    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════
@@ -78,30 +82,19 @@
     <!-- ─── LEFT COLUMN: online bar + main sections ─── -->
     <div class="app-left-col">
 
-      <!-- Online Players Bar (table) -->
+      <!-- Online Players Bar (rooms) -->
 <div class="online-players-bar" id="onlinePlayersBar">
   <div class="op-header">
     <div class="op-header-left">
       <span class="op-live-dot"></span>
-          <span class="op-title">Available Players</span>
-          <span class="op-count-badge" id="opCount">0 Ready</span>
+      <span class="op-title">Available Players</span>
+      <span class="op-count-badge" id="opCount">0 Ready</span>
     </div>
-    <span class="op-subtitle">Click a row to see player details</span>
+    <span class="op-subtitle" id="opSubtitle">Select a bet amount to see rooms</span>
   </div>
-  <div class="online-table-wrapper">
-    <table class="online-table" id="onlineTable">
-      <thead>
-        <tr>
-          <th>Players</th>
-          <th>Open Slots</th>
-          <th>Name</th>
-          <th>W / D / L</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <!-- rooms render here as cards, not a table -->
+  <div id="onlineRoomsWrap">
+    <div id="onlineRoomsGrid" class="online-rooms-grid"></div>
   </div>
 </div>
 
