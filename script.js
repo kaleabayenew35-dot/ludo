@@ -103,6 +103,14 @@ async function loadAiConfig() {
   if (aiButton) aiButton.classList.toggle('hidden', !aiEnabled);
 }
 
+function refreshAiButtonVisibility() {
+  loadAiConfig().catch(() => {
+    aiEnabled = false;
+    window.__LUDO_AI_ENABLED__ = false;
+    $('playAiSidebar')?.classList.add('hidden');
+  });
+}
+
 // ─── SAMPLE DATA ─────────────────────────────────────────────
 function buildSampleLeaderboard() {
   const names = ['ThunderLudo','CrownKing','BlitzPiece','DiceWizard','RollMaster',
@@ -516,6 +524,10 @@ if (mhPlayBtn) {
 }
 
 loadAiConfig();
+setInterval(refreshAiButtonVisibility, 10000);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') refreshAiButtonVisibility();
+});
 
 function startMatchmaking() {
   if (S.selectedAmount === 0) {
