@@ -80,30 +80,19 @@
     <!-- ─── LEFT COLUMN: online bar + main sections ─── -->
     <div class="app-left-col">
 
-      <!-- Online Players Bar (table) -->
+      <!-- Online Players Bar (rooms) -->
 <div class="online-players-bar" id="onlinePlayersBar">
   <div class="op-header">
     <div class="op-header-left">
       <span class="op-live-dot"></span>
-          <span class="op-title">Available Players</span>
-          <span class="op-count-badge" id="opCount">0 Ready</span>
+      <span class="op-title">Available Players</span>
+      <span class="op-count-badge" id="opCount">0 Ready</span>
     </div>
-    <span class="op-subtitle">Click a row to see player details</span>
+    <span class="op-subtitle" id="opSubtitle">Select a bet amount to see rooms</span>
   </div>
-  <div class="online-table-wrapper">
-    <table class="online-table" id="onlineTable">
-      <thead>
-        <tr>
-          <th>Players</th>
-          <th>Open Slots</th>
-          <th>Name</th>
-          <th>W / D / L</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <!-- rooms render here as cards, not a table -->
+  <div id="onlineRoomsWrap">
+    <div id="onlineRoomsGrid" class="online-rooms-grid"></div>
   </div>
 </div>
 
