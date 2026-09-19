@@ -184,6 +184,49 @@ document.querySelectorAll('.nav-tab').forEach(item => {
   item.addEventListener('click', () => navTo(item.dataset.section));
 });
 
+function showSessionExpiredOverlay(authData) {
+  document.getElementById('ludoAuthBlock')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'ludoAuthBlock';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:radial-gradient(ellipse at center,#1a0f00 0%,#0d0d0d 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px 24px;text-align:center;color:#f5e6c8;font-family:Rajdhani,sans-serif;';
+  overlay.innerHTML = `
+    <div style="font-size:3.6rem;line-height:1;">⏰</div>
+    <h1 style="font-family:Cinzel,serif;font-size:1.4rem;color:#f0c94a;margin:0;">Session Expired</h1>
+    <p style="max-width:300px;line-height:1.6;color:rgba(245,230,200,.75);">Your game link has expired. Get a fresh link to continue.</p>
+    <button id="ludoReloadGameBtn" style="background:linear-gradient(135deg,#a07810,#d4a017);color:#1a1005;border:0;border-radius:999px;padding:13px 32px;font-weight:800;cursor:pointer;font-family:inherit;font-size:.95rem;">🔄 Reload Game</button>
+    <div id="ludoReloadStatus" style="min-height:1.2em;color:rgba(245,230,200,.55);font-size:.75rem;"></div>`;
+  document.getElementById('loader')?.style.setProperty('display', 'none');
+  document.body.appendChild(overlay);
+  document.getElementById('ludoReloadGameBtn')?.addEventListener('click', async () => {
+    const button = document.getElementById('ludoReloadGameBtn');
+    const status = document.getElementById('ludoReloadStatus');
+    button.disabled = true;
+    button.textContent = '⏳ Getting fresh link…';
+    try {
+      const response = await fetch(`${SYSTEM_BACKEND_URL}/api/admin/games/game-tokens/refresh-launch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: authData?.token || '',
+          phone: authData?.phonenumber || '',
+          username: authData?.username || '',
+          balance: authData?.balance ?? 0,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.launch) throw new Error(data.error || `HTTP ${response.status}`);
+      const url = new URL(window.location.href);
+      url.searchParams.set('token', data.token || authData.token);
+      url.searchParams.set('launch', data.launch);
+      window.location.href = url.toString();
+    } catch (error) {
+      status.textContent = 'Could not refresh. Please open the game again from Telegram.';
+      button.disabled = false;
+      button.textContent = '🔄 Reload Game';
+    }
+  });
+}
+
 // ─── URL PARAMS & AUTH INIT ──────────────────────────────────
 (async function checkAccess() {
   if (!document.getElementById('appHeader')) return;
@@ -230,7 +273,9 @@ document.querySelectorAll('.nav-tab').forEach(item => {
       });
       const resolved = await response.json().catch(() => ({}));
       if (!response.ok || resolved.valid === false) {
-        throw new Error(resolved.reason || `HTTP ${response.status}`);
+        const authError = new Error(resolved.reason || `HTTP ${response.status}`);
+        authError.status = response.status;
+        throw authError;
       }
       authData.username = resolved.username || resolved.user?.username || authData.username;
       authData.balance = resolved.balance ?? resolved.user?.balance ?? authData.balance;
@@ -240,6 +285,10 @@ document.querySelectorAll('.nav-tab').forEach(item => {
       window.XO_BALANCE = Number(authData.balance ?? 0);
     } catch (error) {
       console.error('[Ludo] Failed to resolve real system account', error);
+      if (error.status === 401 || /expired|jwt/i.test(error.message || '')) {
+        showSessionExpiredOverlay(authData);
+        return;
+      }
       if (!hasLegacyAuth && (authData.balance === undefined || authData.balance === null)) {
         throw new Error('Could not load your account from system_backend.');
       }
