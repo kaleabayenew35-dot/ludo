@@ -90,6 +90,8 @@ const SYSTEM_BACKEND_URL = (window.__SYSTEM_BACKEND_URL__ || 'https://system-bac
 let aiEnabled = false;
 
 async function loadAiConfig() {
+  const aiButton = $('playAiSidebar');
+  if (aiButton) aiButton.classList.add('hidden');
   try {
     const response = await fetch(`${LUDO_API_URL}/api/ai/config`, { cache: 'no-store' });
     const json = await response.json();
@@ -98,9 +100,7 @@ async function loadAiConfig() {
     aiEnabled = false;
   }
   window.__LUDO_AI_ENABLED__ = aiEnabled;
-  if (!aiEnabled) {
-    // Keep the XO/Dama-style AI control visible even while the backend config is unavailable.
-  }
+  if (aiButton) aiButton.classList.toggle('hidden', !aiEnabled);
 }
 
 // ─── SAMPLE DATA ─────────────────────────────────────────────
