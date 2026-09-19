@@ -1499,7 +1499,7 @@ function rpHideLobby() {
   room.players = [];
 }
 
-$('rpCreateRoomBtn').addEventListener('click', () => {
+$('rpCreateRoomBtn')?.addEventListener('click', () => {
   if (room.active) return;
   room.id      = Math.floor(10000 + Math.random() * 89999).toString();
   room.active  = true;
@@ -1524,12 +1524,12 @@ $('rpCreateRoomBtn').addEventListener('click', () => {
   });
 });
 
-$('rpJoinRoomBtn').addEventListener('click', () => {
+$('rpJoinRoomBtn')?.addEventListener('click', () => {
   $('joinRoomInput').value = '';
   showOverlay('joinRoomModal');
 });
 
-$('confirmJoinRoomBtn').addEventListener('click', () => {
+$('confirmJoinRoomBtn')?.addEventListener('click', () => {
   const code = $('joinRoomInput').value.trim();
   if (!code || code.length < 4) { toast('Enter a valid Room ID', 'error'); return; }
   hideOverlay('joinRoomModal');
@@ -1545,19 +1545,19 @@ $('confirmJoinRoomBtn').addEventListener('click', () => {
   toast('Joined room #' + code + '!', 'success');
 });
 
-$('rpCopyInviteBtn').addEventListener('click', () => {
+$('rpCopyInviteBtn')?.addEventListener('click', () => {
   const id = room.id || '——';
   navigator.clipboard.writeText('Join my Ludo room! ID: ' + id)
     .then(() => toast('Invite copied to clipboard!', 'success'))
     .catch(() => toast('Room ID: ' + id, 'info'));
 });
 
-$('rpLeaveRoomBtn').addEventListener('click', () => {
+$('rpLeaveRoomBtn')?.addEventListener('click', () => {
   rpHideLobby();
   toast('You left the room.', 'info');
 });
 
-$('rpStartRoomBtn').addEventListener('click', () => {
+$('rpStartRoomBtn')?.addEventListener('click', () => {
   if (room.players.length < MIN_PLAYERS) return;
   if (S.selectedAmount === 0) { toast('Select a bet amount first!', 'error'); return; }
   rpHideLobby();
