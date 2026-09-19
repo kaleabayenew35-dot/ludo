@@ -85,7 +85,7 @@ const S = {
 const COLORS = ['red','blue','green','yellow'];
 const COLOR_EMOJIS = { red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡' };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
-const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || '').replace(/\/$/, '');
+const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-g2ir.onrender.com').replace(/\/$/, '');
 let aiEnabled = false;
 
 async function loadAiConfig() {
@@ -119,15 +119,6 @@ function buildSampleLeaderboard() {
     initial: n[0]
   }));
 }
-
-const ONLINE_PLAYERS = [
-  { name:'Alice', wins:12, draws:3, balance:250, color:'#7c6af7' },
-  { name:'Bob',   wins:8,  draws:1, balance:180, color:'#f0b133' },
-  { name:'Carol', wins:20, draws:4, balance:420, color:'#36e89c' },
-  { name:'Dave',  wins:5,  draws:2, balance:110, color:'#ff4465' },
-  { name:'Eva',   wins:15, draws:5, balance:310, color:'#4e94ff' },
-  { name:'Frank', wins:3,  draws:0, balance:90,  color:'#a89cf5' }
-];
 
 // ─── DOM HELPERS ─────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -247,6 +238,10 @@ document.querySelectorAll('.nav-tab').forEach(item => {
     tg.MainButton.onClick(() => { if (aiEnabled) goToGame('AI'); });
   }
   syncProfile();
+  window.XO_USERNAME = S.player.name;
+  window.XO_BALANCE = S.player.balance;
+  updateBalanceDisplay(S.player.balance);
+  $('balRefreshBtn')?.addEventListener('click', () => refreshBalance(false));
   const loader = document.getElementById('loader');
   if (loader) {
     loader.style.opacity = '0';
@@ -259,9 +254,41 @@ function syncProfile() {
   const name = S.player.name;
   const initial = name.trim().charAt(0).toUpperCase();
   const avatarEl = $('hdrAvatar'); if (avatarEl) avatarEl.textContent = initial;
+  const telegramUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+  if (telegramUser?.photo_url && avatarEl) {
+    avatarEl.innerHTML = `<img src="${telegramUser.photo_url}" alt="avatar">`;
+  }
   const nameEl = $('hdrName'); if (nameEl) nameEl.textContent = name;
   const dashEl = $('dashName'); if (dashEl) dashEl.textContent = name;
   syncBalance();
+}
+
+function updateBalanceDisplay(balance) {
+  const value = Number(balance);
+  if (!Number.isFinite(value)) return;
+  S.player.balance = value;
+  const balanceEl = $('headerBalance');
+  if (balanceEl) balanceEl.textContent = '💰 ' + value.toLocaleString();
+  syncBalance();
+  window.XO_BALANCE = value;
+}
+
+async function refreshBalance(silent = false) {
+  const spinner = $('balSpinner');
+  const button = $('balRefreshBtn');
+  if (!silent) {
+    spinner?.classList.remove('hidden');
+    if (button) button.disabled = true;
+  }
+  try {
+    const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+    if (auth.balance !== undefined && auth.balance !== null) updateBalanceDisplay(auth.balance);
+  } finally {
+    if (!silent) {
+      spinner?.classList.add('hidden');
+      if (button) button.disabled = false;
+    }
+  }
 }
 
 function syncBalance() {
@@ -324,17 +351,7 @@ function renderDashboard() {
 
   // Right Panel: Online List
   const rpOnline = $('onlineList');
-  if (rpOnline) {
-    rpOnline.innerHTML = '';
-    ONLINE_PLAYERS.forEach(p => {
-      const li = make('li', 'rp-online-item');
-      li.innerHTML = `
-        <div class="rp-online-avatar" style="background:${p.color}">${p.name[0]}</div>
-        <div class="rp-online-name">${p.name}</div>
-        <div class="rp-online-dot"></div>`;
-      rpOnline.appendChild(li);
-    });
-  }
+  if (rpOnline) rpOnline.innerHTML = '';
 
   // Right Panel: Players Stats
   const rpStats = $('statsList');
@@ -1322,150 +1339,55 @@ function buildExpandRow(p, colSpan) {
   return tr;
 }
 
-function renderOnlineBar() {
-  const totalPlayers = ONLINE_PLAYERS_EXTENDED.length;
+async function renderOnlineBar() {
   const countBadge = $('opCount');
-  if (countBadge) countBadge.textContent = totalPlayers + ' Online';
-
   const tbody = document.querySelector('#onlineTable tbody');
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  let expandedIdx = window._globalExpandedIdx !== undefined ? window._globalExpandedIdx : null;
-  window._globalExpandedIdx = undefined;
+  if (!S.selectedAmount) {
+    if (countBadge) countBadge.textContent = '0 Online';
+    tbody.innerHTML = '<tr><td colspan="6" class="ludo-empty-prompt">Select a bet amount above to see available players.</td></tr>';
+    return;
+  }
 
-  const filtered = S.selectedAmount > 0 
-    ? ONLINE_PLAYERS_EXTENDED.filter(p => p.betAmount === S.selectedAmount) 
-    : ONLINE_PLAYERS_EXTENDED;
+  try {
+    const response = await fetch(`${LUDO_API_URL}/api/player?bet=${encodeURIComponent(S.selectedAmount)}`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    const current = String(S.player.name || '').trim().toLowerCase();
+    const players = (Array.isArray(data) ? data : data?.data || [])
+      .filter(player => !player.is_demo && !player.is_ai)
+      .filter(player => String(player.name || '').trim().toLowerCase() !== current);
 
-  filtered.forEach((p) => {
-    const idx = ONLINE_PLAYERS_EXTENDED.indexOf(p);
-    p._idx = idx;
-
-    // Per-player room counts
-    const roomSize  = p.gameRoom ? p.gameRoom.players.length : 1; // players currently in room (min 1 = just host)
-    const openSlots = 4 - roomSize;                               // open slots remaining
-
-    const statusLabel = p.status === 'idle' ? 'Available' : p.status === 'playing' ? 'In Game' : 'Waiting';
-    const isDisabled  = p.status !== 'idle' ? 'disabled' : '';
-
-    const tr = make('tr');
-    tr.dataset.idx = idx;
-    tr.innerHTML = `
-      <td>
-        <span class="ot-count-cell" title="${roomSize} of 4 slots filled">${roomSize} / 4</span>
-      </td>
-      <td>
-        <span class="ot-ingame-badge ${openSlots === 0 ? 'full' : ''}" title="${openSlots} slots open">
-          ${openSlots > 0 ? openSlots + ' open' : 'Full'}
-        </span>
-      </td>
-      <td>
-        <div class="ot-player">
-          <div class="ot-avatar" style="background:${p.color}">${p.name[0]}</div>
-          <div class="ot-player-info">
-            <span class="ot-name">${p.name}</span>
-            <span class="ot-wl">${p.wins}W / ${p.losses}L</span>
-          </div>
-        </div>
-      </td>
-      <td><span class="ot-stats-badges"><b>${p.wins}W</b><b>${p.draws || 0}D</b><b>${p.losses}L</b></span></td>
-      <td>
-        <span class="ot-status ${p.status}">
-          <span class="ot-status-dot"></span>${statusLabel}
-        </span>
-      </td>
-      <td>
-        ${(p.gameRoom && p.gameRoom.players.some(x => x.name === S.player.name))
-          ? `<button class="ot-cancel-btn" data-idx="${idx}" style="background:rgba(255,68,101,0.1); border:1px solid rgba(255,68,101,0.25); color:var(--red); padding:6px 14px; border-radius:100px; font-weight:700; cursor:pointer; font-size:13px;">✕ Cancel</button>`
-          : `<button class="ot-challenge-btn" data-idx="${idx}" ${isDisabled}>▶ Play</button>`
-        }
-      </td>
-    `;
-
-    tr.addEventListener('click', (e) => {
-      if (e.target.closest('.ot-challenge-btn') || e.target.closest('.ot-cancel-btn')) return;
-
-      const existing = tbody.querySelector('.ot-expand-row');
-      if (existing) existing.remove();
-
-      if (expandedIdx === idx) {
-        tr.classList.remove('selected');
-        expandedIdx = null;
-        return;
-      }
-
-      tbody.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
-      tr.classList.add('selected');
-      expandedIdx = idx;
-
-      const expandTr = buildExpandRow(p, 6);
-      tr.insertAdjacentElement('afterend', expandTr);
-    });
-
-    tbody.appendChild(tr);
-  });
-
-  // Challenge button handler
-  tbody.addEventListener('click', (e) => {
-    if (e.target.closest('.ot-cancel-btn')) {
-      const btn = e.target.closest('.ot-cancel-btn');
-      const p = ONLINE_PLAYERS_EXTENDED[btn.dataset.idx];
-      if (!p || !p.gameRoom) return;
-      
-      p.gameRoom.players = p.gameRoom.players.filter(x => x.name !== S.player.name);
-      if (p.gameRoom.players.length === 1 && p.gameRoom.players[0].name === p.name) {
-        p.status = 'idle';
-      }
-      toast(`Left ${p.name}'s room.`, 'info');
-      window._globalExpandedIdx = p._idx;
-      renderOnlineBar();
-      setTimeout(() => {
-        const row = document.querySelector(`tr[data-idx="${p._idx}"]`);
-        if (row) {
-          row.classList.add('selected');
-          const expandTr = buildExpandRow(p, 6);
-          row.insertAdjacentElement('afterend', expandTr);
-        }
-      }, 0);
+    if (countBadge) countBadge.textContent = `${players.length} Online`;
+    if (!players.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="ludo-empty-prompt">No players available at ${S.selectedAmount} ETB yet. Waiting…</td></tr>`;
       return;
     }
 
-    const btn = e.target.closest('.ot-challenge-btn');
-    if (!btn || btn.disabled) return;
-    const p = ONLINE_PLAYERS_EXTENDED[btn.dataset.idx];
-    if (!p) return;
-    S.selectedOpponent = p;
-    
-    // Instead of starting a game, we join the room!
-    if (!p.gameRoom) {
-      p.gameRoom = {
-        id: '#' + Math.floor(10000 + Math.random() * 89999),
-        players: [{ name: p.name, wins: p.wins, losses: p.losses, color: p.color, role: 'host' }]
-      };
-    }
-    // Add you to the room if not already in it
-    if (p.gameRoom.players.length < 4 && !p.gameRoom.players.find(x => x.name === S.player.name)) {
-      p.gameRoom.players.push({
-        name: S.player.name, wins: S.player.wins, losses: S.player.losses, color: '#ff4465', role: 'invited'
+    players.forEach(player => {
+      const row = make('tr');
+      const roomSize = 1;
+      const color = player.color || '#d4a017';
+      row.innerHTML = `
+        <td><span class="ot-count-cell">${roomSize} / 4</span></td>
+        <td><span class="ot-ingame-badge">3 open</span></td>
+        <td><div class="ot-player"><div class="ot-avatar" style="background:${color}">${String(player.name || 'P').slice(0, 1).toUpperCase()}</div><div class="ot-player-info"><span class="ot-name">${player.name || 'Player'}</span></div></div></td>
+        <td><span class="ot-stats-badges"><b>${Number(player.wins || 0)}W</b><b>${Number(player.draws || 0)}D</b><b>${Number(player.losses || 0)}L</b></span></td>
+        <td><span class="ot-status idle"><span class="ot-status-dot"></span>Available</span></td>
+        <td><button class="ot-challenge-btn" type="button">▶ Play</button></td>`;
+      row.querySelector('.ot-challenge-btn').addEventListener('click', () => {
+        S.selectedOpponent = player;
+        goToGame(player.name);
       });
-      p.status = 'playing';
-      toast(`Joined ${p.name}'s room!`, 'success');
-      window._globalExpandedIdx = p._idx;
-      renderOnlineBar();
-      // Ensure the row expands automatically since we re-rendered
-      setTimeout(() => {
-        const row = document.querySelector(`tr[data-idx="${p._idx}"]`);
-        if (row) {
-          row.classList.add('selected');
-          const expandTr = buildExpandRow(p, 6);
-          row.insertAdjacentElement('afterend', expandTr);
-        }
-      }, 0);
-    } else {
-      toast('Room is full or you are already in it!', 'error');
-    }
-  });
+      tbody.appendChild(row);
+    });
+  } catch (error) {
+    console.error('[Ludo] Failed to load real players', error);
+    if (countBadge) countBadge.textContent = '0 Online';
+    tbody.innerHTML = '<tr><td colspan="6" class="ludo-empty-prompt">Unable to load players. Please try again.</td></tr>';
+  }
 }
 
 // ─── GAME ROOM / LOBBY ───────────────────────────────────────
