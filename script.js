@@ -1537,7 +1537,8 @@ function buildOnlineRoomCard(room) {
   const statusText = started ? '🎮 In Game' : safeRoom.status === 'countdown' ? '⏳ Starting…' : count === 0 ? '🟢 Empty' : '👥 Open';
   const compactSummary = count === 0 ? 'Create room' : `Join ${count}/4`;
   const compactCountdown = safeRoom.status === 'countdown' && safeRoom.countdown > 0 ? `Starts in ${safeRoom.countdown}s` : 'Ready now';
-  const compactActionLabel = started ? 'In game' : isFull ? 'Full' : inOther ? 'Busy' : count === 0 ? '+ Create Room' : '+ Join Room';
+  const compactActionLabel = started ? 'In game' : iAmHere ? 'Leave room' : isFull ? 'Full' : inOther ? 'Busy' : count === 0 ? '+ Create Room' : '+ Join Room';
+  const compactDisabled = started || isFull || inOther ? true : false;
 
   card.innerHTML = `
     <div class="or-room-top">
@@ -1550,7 +1551,7 @@ function buildOnlineRoomCard(room) {
       <span>${count} players</span>
       <span>${safeRoom.betAmount} ETB</span>
       <span>${compactCountdown}</span>
-      <button type="button" class="or-compact-action-btn" ${started || isFull || inOther ? 'disabled' : ''}>${compactActionLabel}</button>
+      <button type="button" class="or-compact-action-btn" ${compactDisabled ? 'disabled' : ''}>${compactActionLabel}</button>
     </div>
     <div class="or-main-action"></div>`;
 
@@ -1642,10 +1643,14 @@ function buildOnlineRoomCard(room) {
     actionWrap.appendChild(joinBtn);
   }
 
-  if (compactBtn && !started && !isFull && !inOther) {
+  if (compactBtn) {
     compactBtn.addEventListener('click', (event) => {
       event.stopPropagation();
-      handleOnlineJoin(safeRoom.id, card);
+      if (iAmHere) {
+        handleOnlineLeave(safeRoom.id, card);
+      } else if (!started && !isFull && !inOther) {
+        handleOnlineJoin(safeRoom.id, card);
+      }
     });
   }
 
@@ -1698,7 +1703,14 @@ function buildOnlineRoomCard(room) {
 
 // ── Inline Join ───────────────────────────────────────────────────────────
 async function handleOnlineJoin(roomId, card) {
-  if (S._joinedRoomId) { showToastBar('Leave your current room first', 'error'); return; }
+  if (S._joinedRoomId && S._joinedRoomId !== roomId) {
+    showToastBar('Leave your current room first', 'error');
+    return;
+  }
+  if (S._joinedRoomId === roomId) {
+    showToastBar('You are already in this room', 'info');
+    return;
+  }
   if ((S.player.balance||0) < S.selectedAmount) { showToastBar(`Need ${S.selectedAmount} ETB to join`, 'error'); return; }
 
   const btn = card?.querySelector('.or-join-btn');
@@ -1724,6 +1736,10 @@ async function handleOnlineJoin(roomId, card) {
 
 // ── Inline Leave ──────────────────────────────────────────────────────────
 async function handleOnlineLeave(roomId) {
+  if (!S._joinedRoomId) {
+    showToastBar('You are not in any room', 'info');
+    return;
+  }
   S._joinedRoomId = null;
   stopRoomPoll();
   try {
