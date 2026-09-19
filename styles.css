@@ -269,12 +269,26 @@ button { cursor: pointer; font-family: inherit; }
 .online-table-wrapper { max-height:calc(100vh - 210px); overflow:auto; }
 .online-table { width:100%; border-collapse:separate; border-spacing:0 6px; padding:0 10px 8px; }
 .online-table thead { display:none; }
-.online-table tbody tr { background:var(--dark-3); }
+.online-table tbody { display:flex; flex-direction:column; gap:6px; }
+.online-table tbody tr { background:var(--dark-3); display:grid; grid-template-columns:1fr auto; align-items:center; position:relative; overflow:hidden; }
 .online-table td { border-top:1px solid rgba(255,255,255,.07); border-bottom:1px solid rgba(255,255,255,.07); padding:9px 8px; color:var(--cream); font-size:.78rem; }
 .online-table td:first-child { border-left:1px solid rgba(255,255,255,.07); border-radius:10px 0 0 10px; }
 .online-table td:last-child { border-right:1px solid rgba(255,255,255,.07); border-radius:0 10px 10px 0; }
 .online-table button { background:linear-gradient(135deg,var(--gold-dim),var(--gold)); color:var(--dark); border:0; border-radius:8px; padding:5px 10px; font-weight:800; }
+.online-table td:nth-child(1), .online-table td:nth-child(2) { display:none; }
+.online-table td:nth-child(3) { grid-column:1; grid-row:1 / span 2; border:0; }
+.online-table td:nth-child(4) { grid-column:1; grid-row:2; border:0; padding-top:0; }
+.online-table td:nth-child(5) { grid-column:2; grid-row:1; border:0; padding-bottom:0; }
+.online-table td:nth-child(6) { grid-column:2; grid-row:2; border:0; padding-top:0; }
+.online-table td:first-child, .online-table td:last-child { border-radius:0; }
+.ludo-ready-label-row { display:block !important; background:transparent !important; color:var(--text-3) !important; font-family:'Cinzel',serif; font-size:.58rem !important; font-weight:700; letter-spacing:.12em; padding:7px 4px 3px !important; border:0 !important; }
+.ludo-ready-label-row td { display:block !important; border:0 !important; padding:0 !important; color:inherit !important; }
 .ludo-empty-prompt { padding:22px 12px !important; text-align:center; color:var(--text-3) !important; font-size:.82rem !important; }
+.ludo-own-player-row { background:rgba(212,160,23,.08) !important; border-color:rgba(212,160,23,.35) !important; }
+.ludo-own-player-row .own-avatar { background:linear-gradient(135deg,var(--gold-dim),var(--gold)); color:var(--dark); }
+.ludo-you-tag { color:var(--gold-light); font-size:.58rem; font-weight:800; text-transform:uppercase; letter-spacing:.05em; }
+.ludo-ready-badge { color:var(--green); background:rgba(76,222,128,.1); border:1px solid rgba(76,222,128,.25); border-radius:99px; padding:3px 7px; font-size:.58rem; font-weight:800; white-space:nowrap; }
+.ot-ingame-badge.ready { color:var(--green); border-color:rgba(76,222,128,.3); background:rgba(76,222,128,.1); }
 .ot-stats-badges { display:flex; gap:3px; white-space:nowrap; }
 .ot-stats-badges b { font-size:.58rem; padding:2px 5px; border-radius:99px; }
 .ot-stats-badges b:nth-child(1) { color:var(--green); background:rgba(76,222,128,.1); }
@@ -1157,6 +1171,32 @@ button { cursor: pointer; font-family: inherit; }
 }
 .ot-challenge-btn:hover { transform:translateY(-1px); box-shadow:0 5px 16px rgba(124,106,247,0.5); }
 .ot-challenge-btn:disabled { background:var(--bg-3); color:var(--text-3); box-shadow:none; cursor:not-allowed; transform:none; }
+
+/* Compact lobby card treatment used by the mobile Ludo board */
+.online-players-bar { margin:0; padding:10px 8px 14px; border:0; border-radius:0; background:transparent; gap:8px; }
+.online-players-bar .op-header { padding:0 2px 3px; }
+.online-players-bar .op-title { font-family:'Cinzel',serif; font-size:.72rem; color:var(--cream); }
+.online-players-bar .op-count-badge { background:transparent; padding:0; font-size:.55rem; text-transform:uppercase; }
+.online-players-bar .op-subtitle { display:none; }
+.online-table-wrapper { border:0; border-radius:0; background:transparent; overflow:visible; }
+.online-table { border-spacing:0; padding:0; table-layout:fixed; }
+.online-table tbody { gap:5px; }
+.online-table tbody tr { min-height:54px; border:1px solid rgba(255,255,255,.08); border-radius:11px; background:rgba(28,28,28,.9); cursor:default; }
+.online-table tbody tr td { padding:6px 7px; white-space:normal; }
+.online-table tbody tr.ludo-own-player-row { min-height:68px; border-color:rgba(212,160,23,.38); background:rgba(212,160,23,.08) !important; box-shadow:0 0 18px rgba(212,160,23,.07); }
+.online-table tbody tr.ludo-own-player-row .ot-name { color:var(--cream); font-family:'Cinzel',serif; font-size:.72rem; }
+.online-table tbody tr.ludo-own-player-row .ot-avatar { width:32px; height:32px; }
+.online-table tbody tr.ludo-ready-label-row { min-height:0; border:0; background:transparent !important; }
+.online-table tbody tr.ludo-ready-label-row td { padding:5px 3px 1px !important; }
+.online-table tbody tr:hover { background:rgba(28,28,28,.9); }
+.online-table .ot-player { gap:8px; }
+.online-table .ot-name { font-size:.7rem; }
+.online-table .ot-status { font-size:.52rem; padding:2px 5px; }
+.online-table .ot-challenge-btn { padding:4px 8px; font-size:.58rem; background:linear-gradient(135deg,var(--gold-dim),var(--gold)); color:var(--dark); box-shadow:none; }
+.online-table .ot-stats-badges b { font-size:.5rem; padding:1px 4px; }
+.online-table .ludo-ready-badge { font-size:.5rem; padding:2px 5px; }
+.online-table .ludo-empty-prompt { min-height:120px; padding:44px 12px !important; border:0 !important; background:transparent !important; }
+.online-table .ludo-empty-prompt span { display:inline-block; margin-top:7px; color:var(--text-3); font-size:.7rem; }
 
 /* Highlighted selected row */
 .online-table tbody tr.selected > td {

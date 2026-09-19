@@ -1442,10 +1442,25 @@ async function renderOnlineBar() {
   tbody.innerHTML = '';
 
   if (!S.selectedAmount) {
-    if (countBadge) countBadge.textContent = '0 Online';
+    if (countBadge) countBadge.textContent = '0 Ready';
     tbody.innerHTML = '<tr><td colspan="6" class="ludo-empty-prompt">Select a bet amount above to see available players.</td></tr>';
     return;
   }
+
+  const ownName = S.player.name || 'You';
+  const ownRow = make('tr', 'ludo-own-player-row');
+  ownRow.innerHTML = `
+    <td><span class="ot-count-cell">You</span></td>
+    <td><span class="ot-ingame-badge ready">Ready</span></td>
+    <td><div class="ot-player"><div class="ot-avatar own-avatar">${ownName.slice(0, 1).toUpperCase()}</div><div class="ot-player-info"><span class="ot-name">${ownName} <small class="ludo-you-tag">You</small></span></div></div></td>
+    <td><span class="ot-stats-badges"><b>${Number(S.player.wins || 0)}W</b><b>${Number(S.player.draws || 0)}D</b><b>${Number(S.player.losses || 0)}L</b></span></td>
+    <td><span class="ot-status idle"><span class="ot-status-dot"></span>Ready</span></td>
+    <td><span class="ludo-ready-badge">✓ ${S.selectedAmount} ETB</span></td>`;
+  tbody.appendChild(ownRow);
+
+  const readyLabel = make('tr', 'ludo-ready-label-row');
+  readyLabel.innerHTML = `<td colspan="6">READY PLAYERS — ${S.selectedAmount} ETB</td>`;
+  tbody.appendChild(readyLabel);
 
   try {
     const response = await fetch(`${LUDO_API_URL}/api/player?bet=${encodeURIComponent(S.selectedAmount)}`, { cache: 'no-store' });
@@ -1457,9 +1472,11 @@ async function renderOnlineBar() {
       .filter(player => ![1, '1', true, 'true'].includes(player.is_ai))
       .filter(player => String(player.name || '').trim().toLowerCase() !== current);
 
-    if (countBadge) countBadge.textContent = `${players.length} Online`;
+    if (countBadge) countBadge.textContent = `${players.length} Ready`;
     if (!players.length) {
-      tbody.innerHTML = `<tr><td colspan="6" class="ludo-empty-prompt">No players available at ${S.selectedAmount} ETB yet. Waiting…</td></tr>`;
+      const prompt = make('tr');
+      prompt.innerHTML = `<td colspan="6" class="ludo-empty-prompt">No players ready at ${S.selectedAmount} ETB yet.<br><span>Share your link to invite others!</span></td>`;
+      tbody.appendChild(prompt);
       return;
     }
 
@@ -1482,7 +1499,7 @@ async function renderOnlineBar() {
     });
   } catch (error) {
     console.error('[Ludo] Failed to load real players', error);
-    if (countBadge) countBadge.textContent = '0 Online';
+    if (countBadge) countBadge.textContent = '0 Ready';
     tbody.innerHTML = '<tr><td colspan="6" class="ludo-empty-prompt">Unable to load players. Please try again.</td></tr>';
   }
 }
