@@ -1447,13 +1447,15 @@ async function renderOnlineBar() {
     return;
   }
 
+  // ── show "you" row ────────────────────────────────────────────────────
   const ownName = S.player.name || 'You';
-  const ownRow = make('tr', 'ludo-own-player-row');
+  const ownRow  = make('tr', 'ludo-own-player-row');
   ownRow.innerHTML = `
     <td><span class="ot-count-cell">You</span></td>
     <td><span class="ot-ingame-badge ready">Ready</span></td>
-    <td><div class="ot-player"><div class="ot-avatar own-avatar">${ownName.slice(0, 1).toUpperCase()}</div><div class="ot-player-info"><span class="ot-name">${ownName} <small class="ludo-you-tag">You</small></span></div></div></td>
-    <td><span class="ot-stats-badges"><b>${Number(S.player.wins || 0)}W</b><b>${Number(S.player.draws || 0)}D</b><b>${Number(S.player.losses || 0)}L</b></span></td>
+    <td><div class="ot-player"><div class="ot-avatar own-avatar">${ownName.slice(0,1).toUpperCase()}</div>
+      <div class="ot-player-info"><span class="ot-name">${ownName} <small class="ludo-you-tag">You</small></span></div></div></td>
+    <td><span class="ot-stats-badges"><b>${Number(S.player.wins||0)}W</b><b>${Number(S.player.draws||0)}D</b><b>${Number(S.player.losses||0)}L</b></span></td>
     <td><span class="ot-status idle"><span class="ot-status-dot"></span>Ready</span></td>
     <td><span class="ludo-ready-badge">✓ ${S.selectedAmount} ETB</span></td>`;
   tbody.appendChild(ownRow);
@@ -1463,45 +1465,90 @@ async function renderOnlineBar() {
   tbody.appendChild(readyLabel);
 
   try {
-    const response = await fetch(`${LUDO_API_URL}/api/player?bet=${encodeURIComponent(S.selectedAmount)}`, { cache: 'no-store' });
+    // ── fetch rooms from the new HTTP endpoint ────────────────────────
+    const response = await fetch(`${LUDO_API_URL}/api/rooms?bet=${encodeURIComponent(S.selectedAmount)}`, { cache: 'no-store' });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    const current = String(S.player.name || '').trim().toLowerCase();
-    const players = (Array.isArray(data) ? data : data?.data || [])
-      .filter(player => ![1, '1', true, 'true'].includes(player.is_demo))
-      .filter(player => ![1, '1', true, 'true'].includes(player.is_ai))
-      .filter(player => String(player.name || '').trim().toLowerCase() !== current);
+    const data  = await response.json();
+    const rooms = data.rooms || [];
+
+    // Build a flat list of OTHER players currently in rooms
+    const myName  = String(S.player.name || '').trim().toLowerCase();
+    const players = [];
+    rooms.forEach(room => {
+      room.players.forEach(p => {
+        if (String(p.name || '').trim().toLowerCase() !== myName) {
+          players.push({ ...p, roomId: room.id, roomCount: room.players.length });
+        }
+      });
+    });
 
     if (countBadge) countBadge.textContent = `${players.length} Ready`;
+
     if (!players.length) {
-      const prompt = make('tr');
-      prompt.innerHTML = `<td colspan="6" class="ludo-empty-prompt">No players ready at ${S.selectedAmount} ETB yet.<br><span>Share your link to invite others!</span></td>`;
-      tbody.appendChild(prompt);
+      // No other players in any room — show all 5 rooms as joinable
+      const roomColors = ['#7c6af7','#f0b133','#36e89c','#ff4465','#4e94ff'];
+      rooms.forEach((room, i) => {
+        const row = make('tr', 'ludo-room-row');
+        row.innerHTML = `
+          <td><span class="ot-count-cell">${room.players.length} / 4</span></td>
+          <td><span class="ot-ingame-badge ${room.status === 'started' ? 'ingame' : 'open'}">${room.players.length} / 4</span></td>
+          <td><div class="ot-player">
+            <div class="ot-avatar" style="background:${roomColors[i]}">${i+1}</div>
+            <div class="ot-player-info"><span class="ot-name">Room #${room.id}</span>
+            <small style="color:var(--text-3);font-size:10px">${room.status === 'countdown' ? '⏳ Starting…' : room.status === 'started' ? '🎮 In Game' : '🟢 Open'}</small>
+            </div></div></td>
+          <td><span class="ot-stats-badges"><b>${room.players.length}P</b></span></td>
+          <td><span class="ot-status idle"><span class="ot-status-dot"></span>Available</span></td>
+          <td><button class="ot-challenge-btn" type="button" ${room.status==='started'?'disabled':''}>▶ Join</button></td>`;
+        row.querySelector('.ot-challenge-btn')?.addEventListener('click', () => openLobby(S.selectedAmount));
+        tbody.appendChild(row);
+      });
       return;
     }
 
+    // Show players who are already in rooms
     players.forEach(player => {
-      const row = make('tr');
-      const roomSize = 1;
-      const color = player.color || '#d4a017';
+      const color = ['#7c6af7','#f0b133','#36e89c','#ff4465','#4e94ff','#ff9040'][Math.abs(hashSimple(player.name)) % 6];
+      const row   = make('tr');
       row.innerHTML = `
-        <td><span class="ot-count-cell">${roomSize} / 4</span></td>
-        <td><span class="ot-ingame-badge">3 open</span></td>
-        <td><div class="ot-player"><div class="ot-avatar" style="background:${color}">${String(player.name || 'P').slice(0, 1).toUpperCase()}</div><div class="ot-player-info"><span class="ot-name">${player.name || 'Player'}</span></div></div></td>
-        <td><span class="ot-stats-badges"><b>${Number(player.wins || 0)}W</b><b>${Number(player.draws || 0)}D</b><b>${Number(player.losses || 0)}L</b></span></td>
-        <td><span class="ot-status idle"><span class="ot-status-dot"></span>Available</span></td>
-        <td><button class="ot-challenge-btn" type="button">▶ Play</button></td>`;
-      row.querySelector('.ot-challenge-btn').addEventListener('click', () => {
-        S.selectedOpponent = player;
-        goToGame(player.name);
-      });
+        <td><span class="ot-count-cell">${player.roomCount} / 4</span></td>
+        <td><span class="ot-ingame-badge">${4 - player.roomCount} open</span></td>
+        <td><div class="ot-player">
+          <div class="ot-avatar" style="background:${color}">${String(player.name||'P').slice(0,1).toUpperCase()}</div>
+          <div class="ot-player-info"><span class="ot-name">${player.name||'Player'}</span></div></div></td>
+        <td><span class="ot-stats-badges"><b>${Number(player.wins||0)}W</b><b>0D</b><b>${Number(player.losses||0)}L</b></span></td>
+        <td><span class="ot-status idle"><span class="ot-status-dot"></span>In Room</span></td>
+        <td><button class="ot-challenge-btn" type="button">▶ Join Room</button></td>`;
+      row.querySelector('.ot-challenge-btn').addEventListener('click', () => openLobby(S.selectedAmount));
       tbody.appendChild(row);
     });
+
   } catch (error) {
-    console.error('[Ludo] Failed to load real players', error);
+    console.error('[Ludo] Failed to load rooms', error);
     if (countBadge) countBadge.textContent = '0 Ready';
-    tbody.innerHTML = '<tr><td colspan="6" class="ludo-empty-prompt">Unable to load players. Please try again.</td></tr>';
+    const errRow = make('tr');
+    errRow.innerHTML = `<td colspan="6" class="ludo-empty-prompt">
+      Could not load rooms.
+      <button class="ot-challenge-btn" style="margin-left:10px" type="button">Open Lobby</button>
+    </td>`;
+    errRow.querySelector('.ot-challenge-btn').addEventListener('click', () => openLobby(S.selectedAmount));
+    tbody.appendChild(errRow);
   }
+}
+
+function hashSimple(str) {
+  var h = 0;
+  for (var i = 0; i < (str||'').length; i++) h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+  return h;
+}
+
+function openLobby(bet) {
+  const auth   = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+  const params = new URLSearchParams();
+  if (auth.token)  params.set('token',  auth.token);
+  if (auth.launch) params.set('launch', auth.launch);
+  if (bet) params.set('bet', bet);
+  window.location.href = `lobby.html${params.toString() ? '?' + params.toString() : ''}`;
 }
 
 // ─── GAME ROOM / LOBBY ───────────────────────────────────────
@@ -1648,14 +1695,7 @@ document.querySelectorAll('[data-close]').forEach(btn => {
 // ─── OPEN LOBBY BUTTON ───────────────────────────────────────
 const openLobbyBtn = $('openLobbyBtn');
 if (openLobbyBtn) {
-  openLobbyBtn.addEventListener('click', () => {
-    const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
-    const params = new URLSearchParams();
-    if (auth.token)  params.set('token',  auth.token);
-    if (auth.launch) params.set('launch', auth.launch);
-    if (S.selectedAmount) params.set('bet', S.selectedAmount);
-    window.location.href = `lobby.html${params.toString() ? '?' + params.toString() : ''}`;
-  });
+  openLobbyBtn.addEventListener('click', () => openLobby(S.selectedAmount));
 }
 
 // ─── INIT ────────────────────────────────────────────────────
