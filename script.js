@@ -1532,29 +1532,35 @@ function buildOnlineRoomCard(room) {
   const iAmHere = players.some(p => String(p?.name || '').toLowerCase() === myName);
   const card = make('div', ['or-room-card', iAmHere ? 'or-has-me' : '', started ? 'or-started' : '', count > 0 && !iAmHere ? 'or-has-players' : ''].filter(Boolean).join(' '));
   card.dataset.roomId = safeRoom.id;
+  card.classList.toggle('collapsed', false);
 
-  // ── Top bar ──────────────────────────────────────────────────────────
   const statusText = started ? '🎮 In Game' : safeRoom.status === 'countdown' ? '⏳ Starting…' : count === 0 ? '🟢 Empty' : '👥 Open';
+  const compactSummary = count === 0 ? 'Create room' : `Join ${count}/4`;
+
   card.innerHTML = `
     <div class="or-room-top">
       <span class="or-room-id">ROOM #${safeRoom.id}</span>
       <span class="or-room-count"><strong>${count}</strong> / 4</span>
       <span class="or-status-badge status-${safeRoom.status}">${statusText}</span>
+      <button type="button" class="or-toggle-btn" aria-expanded="true">▾</button>
+    </div>
+    <div class="or-room-summary">
+      <span>${count} players</span>
+      <span>${safeRoom.betAmount} ETB</span>
+      <span>${compactSummary}</span>
+    </div>
+    <div class="or-main-action"></div>
+    <div class="or-room-details">
+      ${safeRoom.status === 'countdown' && safeRoom.countdown > 0 ? `
+      <div class="or-cd-row">
+        <span class="or-cd-pill${safeRoom.countdown <= 8 ? ' urgent' : ''}">⏱ ${safeRoom.countdown}s</span>
+        <div class="or-cd-bar"><div class="or-cd-fill${safeRoom.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(safeRoom.countdown/30*100)}%"></div></div>
+      </div>` : ''}
     </div>`;
 
-  // Countdown bar
-  if (safeRoom.status === 'countdown' && safeRoom.countdown > 0) {
-    const cdDiv = make('div', 'or-cd-row');
-    cdDiv.innerHTML = `
-      <span class="or-cd-pill${safeRoom.countdown <= 8 ? ' urgent' : ''}">⏱ ${safeRoom.countdown}s</span>
-      <div class="or-cd-bar"><div class="or-cd-fill${safeRoom.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(safeRoom.countdown/30*100)}%"></div></div>`;
-    card.appendChild(cdDiv);
-  }
-
-  // ── Players ──────────────────────────────────────────────────────────
+  const details = make('div', 'or-room-details-inner');
   const playersList = make('div', 'or-players-list');
 
-  // "YOU" row always first if I'm here
   if (iAmHere) {
     const youRow = make('div', 'or-player-row or-you');
     const init   = (S.player.name || 'Y').charAt(0).toUpperCase();
@@ -1568,7 +1574,6 @@ function buildOnlineRoomCard(room) {
     playersList.appendChild(youRow);
   }
 
-  // Other players in the room
   players.filter(p => String(p?.name || '').toLowerCase() !== myName).forEach((p, idx) => {
     if (iAmHere && idx === 0) {
       const vsDiv = make('div', 'or-vs-row');
@@ -1588,37 +1593,35 @@ function buildOnlineRoomCard(room) {
     playersList.appendChild(pRow);
   });
 
-  // Empty slots
-  const filledCount = iAmHere ? count : count; // all players shown above
-  for (let i = filledCount; i < 4; i++) {
+  for (let i = count; i < 4; i++) {
     const empty = make('div', 'or-empty-slot');
     empty.innerHTML = `<div class="or-empty-av">+</div><span class="or-empty-lbl">Waiting for player ${i+1}…</span>`;
     playersList.appendChild(empty);
   }
 
-  card.appendChild(playersList);
+  details.appendChild(playersList);
 
-  // ── Balance line ─────────────────────────────────────────────────────
   if (iAmHere) {
     const balLine = make('div', 'or-balance-line');
     balLine.textContent = `Balance: ${(S.player.balance||0).toLocaleString()} ETB`;
-    card.appendChild(balLine);
+    details.appendChild(balLine);
   }
 
-  // ── Action button ────────────────────────────────────────────────────
+  const actionWrap = card.querySelector('.or-main-action');
+
   if (started) {
     const inGame = make('div', 'or-ingame-msg');
     inGame.textContent = '🎮 Game in progress';
-    card.appendChild(inGame);
+    actionWrap.appendChild(inGame);
   } else if (iAmHere) {
     const leaveBtn = make('button', 'or-leave-btn');
     leaveBtn.textContent = '✗ Leave Room';
     leaveBtn.addEventListener('click', () => handleOnlineLeave(safeRoom.id, card));
-    card.appendChild(leaveBtn);
+    actionWrap.appendChild(leaveBtn);
     if (count >= 2 && safeRoom.status === 'countdown') {
       const startingMsg = make('div', 'or-starting-msg');
       startingMsg.innerHTML = `▶ Starting in <strong>${safeRoom.countdown}s</strong>…`;
-      card.appendChild(startingMsg);
+      actionWrap.appendChild(startingMsg);
     }
   } else {
     const joinBtn = make('button', 'or-join-btn');
@@ -1630,9 +1633,28 @@ function buildOnlineRoomCard(room) {
       joinBtn.textContent = count === 0 ? '+ Create Room' : `+ Join Room (${count}/4)`;
       joinBtn.addEventListener('click', () => handleOnlineJoin(safeRoom.id, card));
     }
-    card.appendChild(joinBtn);
+    actionWrap.appendChild(joinBtn);
   }
 
+  const roomDetails = card.querySelector('.or-room-details');
+  const toggleBtn = card.querySelector('.or-toggle-btn');
+  const toggleDetails = () => {
+    const collapsed = card.classList.toggle('collapsed');
+    if (roomDetails) roomDetails.hidden = collapsed;
+    if (toggleBtn) {
+      toggleBtn.textContent = collapsed ? '▸' : '▾';
+      toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+    }
+  };
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      toggleDetails();
+    });
+  }
+
+  card.appendChild(details);
   return card;
 }
 
