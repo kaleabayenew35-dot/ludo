@@ -48,10 +48,10 @@ const HOME_SLOTS = {
 // ─── APP STATE ───────────────────────────────────────────────
 const S = {
   player: {
-    name: 'Player',
-    balance: 500,
-    wins: 7,
-    losses: 3,
+    name: '',
+    balance: null,
+    wins: 0,
+    losses: 0,
     draws: 0,
     totalWon: 0,
     totalLost: 0
@@ -246,17 +246,9 @@ document.querySelectorAll('.nav-tab').forEach(item => {
     }
   }
 
-  S.player.name = authData.username || 'Player';
-  
-  // If launching with balance in URL, use it. Otherwise try to restore from game state.
-  if (balance) {
-    S.player.balance = parseFloat(balance) || 0;
-  } else {
-    const saved = JSON.parse(sessionStorage.getItem('ludoGameState') || '{}');
-    if (saved.balance !== undefined) S.player.balance = saved.balance;
-    if (saved.wins !== undefined) S.player.wins = saved.wins;
-    if (saved.losses !== undefined) S.player.losses = saved.losses;
-    if (saved.draws !== undefined) S.player.draws = saved.draws;
+  S.player.name = authData.username || '';
+  if (authData.balance !== undefined && authData.balance !== null && Number.isFinite(Number(authData.balance))) {
+    S.player.balance = Number(authData.balance);
   }
 
   if (window.Telegram && window.Telegram.WebApp) {
@@ -269,7 +261,7 @@ document.querySelectorAll('.nav-tab').forEach(item => {
   syncProfile();
   window.XO_USERNAME = S.player.name;
   window.XO_BALANCE = S.player.balance;
-  updateBalanceDisplay(S.player.balance);
+  if (S.player.balance !== null) updateBalanceDisplay(S.player.balance);
   $('balRefreshBtn')?.addEventListener('click', () => refreshBalance(false));
   const loader = document.getElementById('loader');
   if (loader) {
@@ -339,8 +331,9 @@ async function refreshBalance(silent = false) {
 
 function syncBalance() {
   const b = S.player.balance;
-  $('headerBalance').textContent = '💰 ' + Number(b || 0).toLocaleString();
-  const wbal = $('walletBalance'); if(wbal) wbal.textContent = '$' + b.toFixed(2);
+  const header = $('headerBalance');
+  if (header) header.textContent = b === null ? '💰 …' : '💰 ' + Number(b).toLocaleString();
+  const wbal = $('walletBalance'); if(wbal) wbal.textContent = b === null ? '— ETB' : Number(b).toLocaleString() + ' ETB';
   const mhbal = $('mhBalance'); if(mhbal) mhbal.textContent = formatMoney(b);
 }
 

@@ -41,8 +41,8 @@ const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 // ── Load state from sessionStorage ───────────────────────────
 const saved = JSON.parse(sessionStorage.getItem('ludoGameState') || '{}');
 const player = {
-  name:      saved.name      || 'Player',
-  balance:   saved.balance   || 500,
+  name:      saved.name      || '',
+  balance:   saved.balance   ?? 0,
   wins:      saved.wins      || 0,
   losses:    saved.losses    || 0,
   draws:     saved.draws     || 0,
