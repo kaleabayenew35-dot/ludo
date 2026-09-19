@@ -1664,6 +1664,19 @@ function buildOnlineRoomCard(room) {
 
   card.classList.add('collapsed');
   roomDetails.hidden = true;
+
+  const openRoomCard = (event) => {
+    if (event && event.target && event.target.closest('button')) return;
+    if (card.classList.contains('collapsed')) {
+      card.classList.remove('collapsed');
+      roomDetails.hidden = false;
+      if (toggleBtn) {
+        toggleBtn.textContent = '▾';
+        toggleBtn.setAttribute('aria-expanded', 'true');
+      }
+    }
+  };
+
   if (toggleBtn) {
     toggleBtn.textContent = '▸';
     toggleBtn.setAttribute('aria-expanded', 'false');
@@ -1672,6 +1685,13 @@ function buildOnlineRoomCard(room) {
       toggleDetails();
     });
   }
+
+  card.addEventListener('click', (event) => {
+    if (event.target && event.target.closest('.or-compact-action-btn')) return;
+    if (event.target && event.target.closest('.or-join-btn')) return;
+    if (event.target && event.target.closest('.or-leave-btn')) return;
+    openRoomCard(event);
+  });
 
   return card;
 }
