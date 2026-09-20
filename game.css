@@ -276,8 +276,9 @@ body.game-page {
 
 /* ── Center surrounding cells ────────────────────────────────── */
 .game-page .bc-center {
-  background: var(--board-cream) !important;
-  border: 0.5px solid #c4b990 !important;
+  background: linear-gradient(135deg, #f0c94a 0%, #d4a017 60%, #b8860a 100%) !important;
+  border: 0.5px solid #8a6200 !important;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.4), inset 0 -1px 2px rgba(0,0,0,0.25) !important;
 }
 
 /* ── Center pinwheel — 4 triangles with radial glow ─────────── */
