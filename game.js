@@ -56,13 +56,22 @@ const autoStart      = saved.autoStart      || false;
 const roomId          = saved.roomId || null;
 const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
-const ACTIVE_COLORS   = playerCount === 2
+
+// Color rosters — ONLY the colors that are actually playing
+// 2 players: red + yellow  (opposite corners)
+// 3 players: yellow + red + green
+// 4 players: yellow + blue + green + red
+const ACTIVE_COLORS = playerCount === 2
   ? ['red', 'yellow']
   : playerCount === 3
     ? ['yellow', 'red', 'green']
     : ['yellow', 'blue', 'green', 'red'];
+
 const localPlayerIndex = lobbyPlayers.findIndex(lobbyPlayer => String(lobbyPlayer.name) === String(player.name));
-const localColor = saved.playerColor || ACTIVE_COLORS[Math.max(0, localPlayerIndex)];
+// Use saved playerColor if available, otherwise derive from lobby slot
+const localColor = saved.playerColor && ACTIVE_COLORS.includes(saved.playerColor)
+  ? saved.playerColor
+  : ACTIVE_COLORS[Math.max(0, localPlayerIndex)];
 
 // ── Game state ────────────────────────────────────────────────
 // ── Game state ────────────────────────────────────────────────
@@ -302,21 +311,27 @@ function renderGamePlayers() {
 // ── Game UI ───────────────────────────────────────────────────
 function currentColor() { return ACTIVE_COLORS[G.turn % ACTIVE_COLORS.length]; }
 function updateGameUI() {
-  const col=currentColor();
-  const dot=$('turnDot'); if (dot) dot.className=`turn-dot ${col}`;
-  const txt=$('turnText'); if (txt) txt.textContent=(col===localColor?'Your':col.charAt(0).toUpperCase()+col.slice(1))+"'s Turn";
-  const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled || col !== localColor || G.eliminated[localColor];
-  // Update player rows with eliminated styling
-  ACTIVE_COLORS.forEach((c,i)=>{
-    const row=$(`gpr-${c}`);
-    if (row) {
-      row.className='game-player-row'+(i===G.turn%ACTIVE_COLORS.length?' active-player':'');
-      if (G.eliminated[c]) row.classList.add('player-lost'); else row.classList.remove('player-lost');
-      const span=row.querySelector('.gpr-result');
-      if (span) {
-        span.textContent = G.eliminated[c] ? 'LOSE' : G.winnerColor === c ? 'WIN' : `${G.finished[c]}/4`;
-        span.className = `gpr-result ${G.eliminated[c] ? 'player-result-loss' : G.winnerColor === c ? 'player-result-win' : ''}`;
-      }
+  const col = currentColor();
+  const dot = $('turnDot'); if (dot) dot.className = `turn-dot ${col}`;
+  const txt = $('turnText');
+  if (txt) {
+    const label = col === localColor ? 'Your' : col.charAt(0).toUpperCase() + col.slice(1);
+    txt.textContent = `${label}'s Turn`;
+  }
+  const rollBtn = $('rollDiceBtn');
+  if (rollBtn) rollBtn.disabled = !G.started || G.rolled || col !== localColor || G.eliminated[localColor];
+
+  // Update only the active players' rows (ignore blue/other inactive colors)
+  ACTIVE_COLORS.forEach((c, i) => {
+    const row = $(`gpr-${c}`);
+    if (!row) return;
+    const isActive = (i === G.turn % ACTIVE_COLORS.length);
+    row.className = 'game-player-row' + (isActive ? ' active-player' : '');
+    if (G.eliminated[c]) row.classList.add('player-lost');
+    const span = row.querySelector('.gpr-result');
+    if (span) {
+      span.textContent  = G.eliminated[c] ? 'LOSE' : G.winnerColor === c ? 'WIN' : `${G.finished[c]}/4`;
+      span.className    = `gpr-result ${G.eliminated[c] ? 'player-result-loss' : G.winnerColor === c ? 'player-result-win' : ''}`;
     }
   });
 }
@@ -335,15 +350,20 @@ function addLog(text, type='') {
 // ── Reset / Start ─────────────────────────────────────────────
 function resetGame() {
   G.active=false; G.started=false; G.turn=0; G.diceValue=0; G.rolled=false;
+  // Reset all 4 color slots in state (safe), only ACTIVE_COLORS are rendered
   COLORS.forEach(col => {
     G.pieces[col]=[-1,-1,-1,-1]; G.finished[col]=0; G.eliminated[col]=false;
   });
   G.winnerColor = null;
-  G.log=[]; renderPieces(); updateGameUI();
+  G.log=[];
+  buildBoard();
+  renderPieces();
+  updateGameUI();
   const gameLog=$('gameLog'); if (gameLog) gameLog.innerHTML='<div class="log-entry">Game ready — press Start.</div>';
   const startBtn=$('startGameBtn'); if (startBtn) startBtn.disabled=false;
   const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=true;
-  stopTurnTimer(); updateTimerDisplay(); const idEl=$('gameHeaderId'); if (idEl) idEl.textContent='#——';
+  stopTurnTimer(); updateTimerDisplay();
+  const idEl=$('gameHeaderId'); if (idEl) idEl.textContent='#——';
 }
 
 
@@ -622,7 +642,7 @@ function movePiece(color, idx, steps) {
 
     // Check captures on final position
     if (finalPos < 52 && !SAFE_POSITIONS.has(finalPos)) {
-      COLORS.forEach(other => {
+      ACTIVE_COLORS.forEach(other => {
         if (other === color) return;
         G.pieces[other].forEach((opos, oidx) => {
           if (opos === finalPos) {
