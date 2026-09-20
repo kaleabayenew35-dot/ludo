@@ -524,6 +524,12 @@ function applyRemoteAction(action) {
 function applyRemoteGameState(remoteState) {
   if (!remoteState || !G.started) return;
 
+  // Ignore stale snapshots so an older turn/roll state cannot overwrite the
+  // newest current game state after a local move or a remote action.
+  if (remoteState.updatedAt && G.updatedAt && remoteState.updatedAt < G.updatedAt) {
+    return;
+  }
+
   // Snapshot previous dice value so we can detect a new roll
   const prevDiceValue = G.diceValue;
   const prevRolled    = G.rolled;
@@ -597,14 +603,14 @@ function connectGameSocket() {
   GAME_SOCKET.on('game:state', (remoteState) => {
     if (!remoteState || remoteState.roomId !== roomId) return;
 
-    // Drop stale local-echo updates but always process remote roll events so
-    // the opponent's dice animation is never skipped.
+    // Drop stale snapshots and local echoes so the newest turn state wins.
     const isRollEvent = remoteState.source === 'roll' || remoteState.source === 'bonus';
     const isStaleEcho = remoteState.source === 'local'
       && remoteState.updatedAt
       && remoteState.updatedAt <= (G.updatedAt || 0);
+    const isOlderSnapshot = remoteState.updatedAt && G.updatedAt && remoteState.updatedAt < G.updatedAt;
 
-    if (isStaleEcho && !isRollEvent) return;
+    if ((isStaleEcho && !isRollEvent) || isOlderSnapshot) return;
 
     applyRemoteGameState(remoteState);
   });
