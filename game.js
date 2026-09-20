@@ -38,6 +38,7 @@ const HOME_SLOTS = {
 const COLORS     = ['red','blue','green','yellow'];
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
+const GAME_SOCKET = typeof io !== 'undefined' ? io(LUDO_API_URL, { transports: ['websocket', 'polling'] }) : null;
 
 // ── Load state from sessionStorage ───────────────────────────
 const saved = JSON.parse(sessionStorage.getItem('ludoGameState') || '{}');
@@ -375,9 +376,56 @@ function resetGame() {
 }
 
 
+function broadcastGameState(source = 'local') {
+  if (!roomId || !GAME_SOCKET || !GAME_SOCKET.connected) return;
+  GAME_SOCKET.emit('game:state:update', {
+    roomId,
+    state: {
+      ...G,
+      roomId,
+      source,
+      updatedAt: Date.now(),
+      players: lobbyPlayers.map((playerEntry, index) => ({
+        ...playerEntry,
+        color: ACTIVE_COLORS[index] || playerEntry.color,
+      })),
+    },
+  });
+}
+
+function applyRemoteGameState(remoteState) {
+  if (!remoteState || !remoteState.roomId) return;
+  Object.assign(G, remoteState);
+  if (Array.isArray(remoteState.players) && remoteState.players.length) {
+    lobbyPlayers.length = 0;
+    remoteState.players.forEach((entry) => lobbyPlayers.push(entry));
+  }
+  renderGamePlayers();
+  buildBoard();
+  renderPieces();
+  updateGameUI();
+}
+
+function connectGameSocket() {
+  if (!roomId || !GAME_SOCKET) return;
+  GAME_SOCKET.on('connect', () => {
+    GAME_SOCKET.emit('game:join', {
+      roomId,
+      player: { name: player.name, color: localColor },
+    });
+  });
+  GAME_SOCKET.on('game:state', (state) => {
+    if (!state || state.roomId !== roomId) return;
+    if (state.source === 'local' && state.updatedAt && state.updatedAt <= (G.updatedAt || 0)) return;
+    applyRemoteGameState(state);
+  });
+}
+
 function startGame() {
   resetGame();
   G.active=true; G.started=true;
+  G.roomId = roomId;
+  G.updatedAt = Date.now();
   const startBtn = $('startGameBtn'); if (startBtn) startBtn.disabled=true;
   const rollBtn  = $('rollDiceBtn');  if (rollBtn)  rollBtn.disabled=(ACTIVE_COLORS[0] !== localColor);
   renderGamePlayers();
@@ -387,6 +435,7 @@ function startGame() {
   const idEl   = $('gameHeaderId'); if (idEl) idEl.textContent='#'+gameId;
   resetTurnTimer();
   startPresenceWatch();
+  broadcastGameState('start');
   // Auto-roll if first turn is AI
   if (ACTIVE_COLORS[0] !== localColor) {
     setTimeout(() => rollDice(true), 1000);
@@ -488,16 +537,16 @@ function rollDice(computerTurn = false) {
   const rollBtn = $('rollDiceBtn'); if(rollBtn) rollBtn.disabled=true;
 
   animateDice(value, () => {
+    G.updatedAt = Date.now();
     addLog(`${col.charAt(0).toUpperCase()+col.slice(1)} rolled a ${value}`,'roll');
     if (col===localColor) {
       const movable = getMovablePieces(localColor, value);
       if (movable.length === 0) {
         addLog('No valid moves. Turn skipped.','move');
+        broadcastGameState('roll');
         setTimeout(nextTurn, 900);
       } else if (movable.length === 1) {
-        // Only one piece can move — auto-move it
         addLog('Auto-moving only available piece.','move');
-        // Blink briefly then move
         const el = $(`piece-${localColor}-${movable[0]}`);
         if (el) el.classList.add('blinking');
         setTimeout(() => {
@@ -505,12 +554,12 @@ function rollDice(computerTurn = false) {
           movePiece(localColor, movable[0], value);
         }, 700);
       } else {
-        // Multiple choices — blink all and wait for player click
         highlightMovable(value);
       }
     } else {
       setTimeout(()=>aiMove(col,value),400);
     }
+    broadcastGameState('roll');
   });
 }
 
@@ -666,6 +715,7 @@ function movePiece(color, idx, steps) {
   animatePieceMove(color, idx, steps, () => {
     // Apply final state
     G.pieces[color][idx] = finalPos;
+    G.updatedAt = Date.now();
 
     if (finalPos === 57) {
       G.finished[color]++;
@@ -682,11 +732,13 @@ function movePiece(color, idx, steps) {
     }
 
     renderPieces();
+    broadcastGameState('move');
 
     if (bonusTurn && color === localColor) {
       addLog('Bonus turn! Roll again.', 'roll');
       G.rolled = false;
       updateGameUI();
+      broadcastGameState('bonus');
     } else if (bonusTurn) {
       nextTurn(color);
     } else {
@@ -890,6 +942,7 @@ buildBoard();
 renderPieces();
 renderGamePlayers();
 updateTimerDisplay();
+connectGameSocket();
 
 if (autoStart) {
   // Small delay so the board renders first
