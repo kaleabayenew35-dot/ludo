@@ -20,19 +20,27 @@ const MAIN_PATH = [
   [7,0],[6,0]
 ];
 const SAFE_POSITIONS = new Set([0,8,13,21,26,34,39,47]);
+// Home columns — each color's 5-cell runway leading to the center.
+// Matches board CSS: bc-hc-r=left(row7), bc-hc-b=top(col7),
+//                   bc-hc-y=right(row7), bc-hc-g=bottom(col7)
 const HOME_COLS = {
-  yellow: [[7,1],[7,2],[7,3],[7,4],[7,5]],
-  red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],
-  blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],
-  green:  [[13,7],[12,7],[11,7],[10,7],[9,7]]
+  red:    [[7,1],[7,2],[7,3],[7,4],[7,5]],     // bc-hc-r  (left,  row 7)
+  blue:   [[1,7],[2,7],[3,7],[4,7],[5,7]],     // bc-hc-b  (top,   col 7)
+  yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]], // bc-hc-y  (right, row 7)
+  green:  [[13,7],[12,7],[11,7],[10,7],[9,7]]  // bc-hc-g  (bottom,col 7)
 };
-const ENTRY_POS      = { yellow:0, red:13, blue:26, green:39 };
-const HOME_COL_ENTRY = { yellow:51, red:12, blue:25, green:38 };
+// Entry positions on MAIN_PATH where each color's pieces enter the track
+const ENTRY_POS      = { red:0, blue:13, yellow:26, green:39 };
+// Path index after which a piece diverts into its home column
+const HOME_COL_ENTRY = { red:51, blue:12, yellow:25, green:38 };
+// Home slots (starting circles) — each color sits in its own corner
+// Matches board CSS: bc-rh=top-left, bc-bh=top-right,
+//                   bc-yh=bottom-right, bc-gh=bottom-left
 const HOME_SLOTS = {
-  yellow: [[1,1],[1,4],[4,1],[4,4]],
-  red:    [[1,10],[1,13],[4,10],[4,13]],
-  blue:   [[10,10],[10,13],[13,10],[13,13]],
-  green:  [[10,1],[10,4],[13,1],[13,4]]
+  red:    [[1,1],[1,4],[4,1],[4,4]],           // top-left     (bc-rh)
+  blue:   [[1,10],[1,13],[4,10],[4,13]],        // top-right    (bc-bh)
+  yellow: [[10,10],[10,13],[13,10],[13,13]],    // bottom-right (bc-yh)
+  green:  [[10,1],[10,4],[13,1],[13,4]]         // bottom-left  (bc-gh)
 };
 
 const COLORS     = ['red','blue','green','yellow'];
