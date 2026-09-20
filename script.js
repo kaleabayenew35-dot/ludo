@@ -513,7 +513,9 @@ document.querySelectorAll('.amount-selector').forEach(sel => {
 
     const betDisp = $('gameBetDisplay'); if(betDisp) betDisp.textContent = '$' + S.selectedAmount;
     const rpBetDisp = $('rpBetAmount'); if(rpBetDisp) rpBetDisp.textContent = '$' + S.selectedAmount;
-    
+
+    // Live-subscribe to this bet tier (socket + HTTP fallback)
+    liveRoomsSubscribe(S.selectedAmount);
     renderOnlineBar();
   });
 });
@@ -1480,6 +1482,189 @@ function normalizeRoom(room) {
   return safeRoom;
 }
 
+// ═══════════════════════════════════════════════════════════
+//  LIVE ROOMS — socket-driven updates for Available Players
+//  Falls back to 3-second HTTP polling when socket is offline
+// ═══════════════════════════════════════════════════════════
+const _liveRooms = {
+  socket       : null,
+  socketReady  : false,
+  subscribedBet: 0,       // which tier is currently subscribed
+  pollTimer    : null,    // fallback HTTP poll
+  rooms        : {},      // roomId → room  (cache for diff-patching)
+};
+
+function liveRoomsInit() {
+  if (typeof io === 'undefined') {
+    // socket.io not loaded — pure HTTP poll mode
+    _startLiveRoomsPoll();
+    return;
+  }
+
+  try {
+    _liveRooms.socket = io(LUDO_API_URL, {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10,
+      timeout: 8000,
+    });
+  } catch (e) {
+    _startLiveRoomsPoll();
+    return;
+  }
+
+  const sock = _liveRooms.socket;
+
+  sock.on('connect', () => {
+    _liveRooms.socketReady = true;
+    _stopLiveRoomsPoll();
+    // Re-subscribe to the currently selected bet tier
+    if (_liveRooms.subscribedBet) {
+      sock.emit('subscribe:bet', { betAmount: _liveRooms.subscribedBet });
+    }
+  });
+
+  sock.on('disconnect', () => {
+    _liveRooms.socketReady = false;
+    _startLiveRoomsPoll();
+  });
+
+  sock.on('connect_error', () => {
+    _liveRooms.socketReady = false;
+    _startLiveRoomsPoll();
+  });
+
+  // Full snapshot when we (re-)subscribe to a tier
+  sock.on('rooms:snapshot', ({ betAmount, rooms }) => {
+    if (betAmount !== _liveRooms.subscribedBet) return;
+    _liveRooms.rooms = {};
+    (rooms || []).forEach(r => { _liveRooms.rooms[r.id] = r; });
+    _applyLiveRoomsToGrid();
+  });
+
+  // Single-room update (player joined/left, countdown tick, status change)
+  sock.on('room:update', (room) => {
+    if (!room || room.betAmount !== _liveRooms.subscribedBet) return;
+    _liveRooms.rooms[room.id] = room;
+    _patchRoomCard(room);
+    _updateLiveRoomCount();
+  });
+
+  // Game started in a room — room is being reset by backend; re-fetch all
+  sock.on('room:started', ({ betAmount }) => {
+    if (betAmount !== _liveRooms.subscribedBet) return;
+    // startRoomPoll() handles the redirect; just refresh the card display
+    _fetchAndRefreshRooms(_liveRooms.subscribedBet);
+  });
+}
+
+/** Switch subscription to a new bet tier */
+function liveRoomsSubscribe(betAmount) {
+  _liveRooms.subscribedBet = betAmount;
+  _liveRooms.rooms = {};
+
+  if (_liveRooms.socketReady && _liveRooms.socket) {
+    _liveRooms.socket.emit('subscribe:bet', { betAmount });
+  }
+
+  // Always do an immediate HTTP fetch so the grid populates even before the
+  // socket snapshot arrives (or in pure-poll mode)
+  _fetchAndRefreshRooms(betAmount);
+
+  // Start/restart the fallback poll so the grid stays fresh even if the
+  // socket is slow or offline
+  _startLiveRoomsPoll();
+}
+
+/** Fetch rooms via HTTP and patch the grid */
+async function _fetchAndRefreshRooms(betAmount) {
+  if (!betAmount) return;
+  try {
+    const res   = await fetch(`${LUDO_API_URL}/api/rooms?bet=${encodeURIComponent(betAmount)}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const data  = await res.json();
+    const rooms = Array.isArray(data?.rooms) ? data.rooms : [];
+    if (betAmount !== _liveRooms.subscribedBet) return; // user changed amount while in flight
+    _liveRooms.rooms = {};
+    rooms.forEach(r => { _liveRooms.rooms[r.id] = r; });
+    _applyLiveRoomsToGrid();
+  } catch (_) {}
+}
+
+/** Rebuild the entire grid from the cache (called on snapshot / full refresh) */
+function _applyLiveRoomsToGrid() {
+  const grid       = $('onlineRoomsGrid');
+  const countBadge = $('opCount');
+  const subtitle   = $('opSubtitle');
+  if (!grid) return;
+
+  const rooms = Object.values(_liveRooms.rooms);
+  if (!rooms.length) return;
+
+  const myName = String(S.player.name || '').trim().toLowerCase();
+
+  rooms.sort((a, b) => {
+    const aMe = (a.players||[]).some(p => String(p?.name||'').toLowerCase() === myName) ? 1 : 0;
+    const bMe = (b.players||[]).some(p => String(p?.name||'').toLowerCase() === myName) ? 1 : 0;
+    if (aMe !== bMe) return bMe - aMe;
+    if (a.status === 'started') return 1;
+    if (b.status === 'started') return -1;
+    return (b.players?.length||0) - (a.players?.length||0);
+  });
+
+  grid.innerHTML = '';
+  rooms.forEach(r => grid.appendChild(buildOnlineRoomCard(r)));
+
+  const total = rooms.reduce((s, r) => s + (r.players?.length||0), 0);
+  if (countBadge) countBadge.textContent = `${total} Ready`;
+  if (subtitle) subtitle.textContent = `LIVE — ${_liveRooms.subscribedBet} ETB`;
+}
+
+/** Patch a single room card in place without rebuilding the whole grid */
+function _patchRoomCard(room) {
+  const grid = $('onlineRoomsGrid');
+  if (!grid) return;
+
+  const existing = grid.querySelector(`[data-room-id="${room.id}"]`);
+  const newCard  = buildOnlineRoomCard(room);
+
+  if (existing) {
+    // Preserve expanded/collapsed state
+    if (!existing.classList.contains('collapsed')) {
+      newCard.classList.remove('collapsed');
+      const det = newCard.querySelector('.or-room-details');
+      if (det) det.hidden = false;
+      const tog = newCard.querySelector('.or-toggle-btn');
+      if (tog) { tog.textContent = '▾'; tog.setAttribute('aria-expanded', 'true'); }
+    }
+    existing.parentNode.replaceChild(newCard, existing);
+  } else {
+    // New room card — rebuild grid to maintain sort order
+    _applyLiveRoomsToGrid();
+  }
+}
+
+function _updateLiveRoomCount() {
+  const total = Object.values(_liveRooms.rooms).reduce((s, r) => s + (r.players?.length||0), 0);
+  const b = $('opCount');
+  if (b) b.textContent = `${total} Ready`;
+}
+
+/** Fallback HTTP poll (3s) used when socket is disconnected */
+function _startLiveRoomsPoll() {
+  _stopLiveRoomsPoll();
+  if (!_liveRooms.subscribedBet) return;
+  _liveRooms.pollTimer = setInterval(() => {
+    // If socket reconnected, stop polling
+    if (_liveRooms.socketReady) { _stopLiveRoomsPoll(); return; }
+    if (!_liveRooms.subscribedBet) return;
+    _fetchAndRefreshRooms(_liveRooms.subscribedBet);
+  }, 3000);
+}
+
+function _stopLiveRoomsPoll() {
+  if (_liveRooms.pollTimer) { clearInterval(_liveRooms.pollTimer); _liveRooms.pollTimer = null; }
+}
+
 async function renderOnlineBar() {
   const countBadge = $('opCount');
   const grid       = $('onlineRoomsGrid');
@@ -1747,6 +1932,8 @@ async function handleOnlineJoin(roomId, card) {
     S._joinedRoomId = roomId;
     showToastBar(`Joined Room #${roomId}!`, 'success');
     renderOnlineBar();
+    // Refresh live room cache so the socket patch stays in sync
+    if (_liveRooms.subscribedBet) _fetchAndRefreshRooms(_liveRooms.subscribedBet);
     // Start polling for room:started
     startRoomPoll(roomId);
   } catch (e) {
@@ -1771,6 +1958,7 @@ async function handleOnlineLeave(roomId) {
   } catch(e) {}
   showToastBar('Left the room', 'info');
   renderOnlineBar();
+  if (_liveRooms.subscribedBet) _fetchAndRefreshRooms(_liveRooms.subscribedBet);
 }
 
 // ── Poll for room:started (fallback without socket on index.html) ─────────
@@ -2031,6 +2219,8 @@ if (openLobbyBtn) {
   renderDashboard();
   renderOnlineBar();
   syncBalance();
+  // Start live room socket connection for Available Players bar
+  liveRoomsInit();
 
   setInterval(() => {
     if (S.currentSection === 'dashboard') {
