@@ -23,26 +23,37 @@ const MAIN_PATH = [
 // Safe positions (by index in MAIN_PATH)
 const SAFE_POSITIONS = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 
-// Home columns [row,col] leading to center, indexed 0→4 (5 steps before center)
+// ── Board corner layout ───────────────────────────────────────
+// ┌────────────┬────────────┐
+// │  GREEN(TL) │   RED(TR)  │
+// ├────────────┼────────────┤
+// │ YELLOW(BL) │  BLUE(BR)  │
+// └────────────┴────────────┘
+
+// Home-column runways (5 cells leading toward center)
+// green  → left  arm  (row 7, cols 1-5)   → bc-hc-g
+// red    → top   arm  (col 7, rows 1-5)   → bc-hc-r
+// blue   → right arm  (row 7, cols 9-13)  → bc-hc-b
+// yellow → bottom arm (col 7, rows 9-13)  → bc-hc-y
 const HOME_COLS = {
-  red:    [[7,1],[7,2],[7,3],[7,4],[7,5]],
-  blue:   [[1,7],[2,7],[3,7],[4,7],[5,7]],
-  green:  [[7,13],[7,12],[7,11],[7,10],[7,9]],
-  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]
+  green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],     // left  arm
+  red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],      // top   arm
+  blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],  // right arm
+  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]   // bottom arm
 };
 
 // Where each color enters the main path
-const ENTRY_POS = { red: 0, blue: 13, green: 26, yellow: 39 };
+const ENTRY_POS = { green: 0, red: 13, blue: 26, yellow: 39 };
 
 // Where each color enters its home column (path index AFTER this triggers home col entry)
-const HOME_COL_ENTRY = { red: 51, blue: 12, green: 25, yellow: 38 };
+const HOME_COL_ENTRY = { green: 51, red: 12, blue: 25, yellow: 38 };
 
 // Home piece slots (where pieces sit when not yet entered)
 const HOME_SLOTS = {
-  red:    [[1,1],[1,4],[4,1],[4,4]],
-  blue:   [[1,10],[1,13],[4,10],[4,13]],
-  green:  [[10,10],[10,13],[13,10],[13,13]],
-  yellow: [[10,1],[10,4],[13,1],[13,4]]
+  green:  [[1,1],[1,4],[4,1],[4,4]],            // top-left corner
+  red:    [[1,10],[1,13],[4,10],[4,13]],         // top-right corner
+  blue:   [[10,10],[10,13],[13,10],[13,13]],     // bottom-right corner
+  yellow: [[10,1],[10,4],[13,1],[13,4]]          // bottom-left corner
 };
 
 // ─── APP STATE ───────────────────────────────────────────────
@@ -592,14 +603,16 @@ function getCellClass(r, c) {
     if (r === 7 && c === 7) return 'bc bc-center-core';
     return 'bc bc-center';
   }
-  if (r <= 5 && c <= 5) return 'bc bc-rh';
-  if (r <= 5 && c >= 9) return 'bc bc-bh';
-  if (r >= 9 && c >= 9) return 'bc bc-yh';
-  if (r >= 9 && c <= 5) return 'bc bc-gh';
-  if (r === 7 && c >= 1 && c <= 5)  return 'bc bc-hc-r';
-  if (c === 7 && r >= 1 && r <= 5)  return 'bc bc-hc-b';
-  if (r === 7 && c >= 9 && c <= 13) return 'bc bc-hc-y';
-  if (c === 7 && r >= 9 && r <= 13) return 'bc bc-hc-g';
+  // Corner quadrants match board layout: TL=GREEN, TR=RED, BR=BLUE, BL=YELLOW
+  if (r <= 5 && c <= 5) return 'bc bc-gh';       // top-left    = GREEN
+  if (r <= 5 && c >= 9) return 'bc bc-rh';       // top-right   = RED
+  if (r >= 9 && c >= 9) return 'bc bc-bh';       // bottom-right= BLUE
+  if (r >= 9 && c <= 5) return 'bc bc-yh';       // bottom-left = YELLOW
+  // Home-column runways — colored to match the owner's color
+  if (r === 7 && c >= 1 && c <= 5)  return 'bc bc-hc-g'; // left  arm → GREEN
+  if (c === 7 && r >= 1 && r <= 5)  return 'bc bc-hc-r'; // top   arm → RED
+  if (r === 7 && c >= 9 && c <= 13) return 'bc bc-hc-b'; // right arm → BLUE
+  if (c === 7 && r >= 9 && r <= 13) return 'bc bc-hc-y'; // bottom arm→ YELLOW
   const idx = MAIN_PATH.findIndex(([pr,pc]) => pr === r && pc === c);
   if (idx >= 0) return SAFE_POSITIONS.has(idx) ? 'bc bc-safe' : 'bc bc-path';
   return 'bc bc-path';
@@ -614,10 +627,11 @@ function buildBoard() {
     for (let c = 0; c < 15; c++) {
       const div = make('div', getCellClass(r, c));
       div.id = cellId(r, c);
-      const allSlots = [...HOME_SLOTS.red, ...HOME_SLOTS.blue, ...HOME_SLOTS.yellow, ...HOME_SLOTS.green];
+      // Slot circles — match new layout: green=TL, red=TR, blue=BR, yellow=BL
+      const allSlots = [...HOME_SLOTS.green, ...HOME_SLOTS.red, ...HOME_SLOTS.blue, ...HOME_SLOTS.yellow];
       const slotColors = [
-        ...HOME_SLOTS.red.map(()=>'r'), ...HOME_SLOTS.blue.map(()=>'b'),
-        ...HOME_SLOTS.yellow.map(()=>'y'), ...HOME_SLOTS.green.map(()=>'g')
+        ...HOME_SLOTS.green.map(()=>'g'), ...HOME_SLOTS.red.map(()=>'r'),
+        ...HOME_SLOTS.blue.map(()=>'b'), ...HOME_SLOTS.yellow.map(()=>'y')
       ];
       const si = allSlots.findIndex(([sr,sc]) => sr === r && sc === c);
       if (si >= 0) div.classList.add('bc-hcircle', slotColors[si]);

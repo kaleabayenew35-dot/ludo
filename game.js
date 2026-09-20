@@ -29,15 +29,15 @@ const SAFE_POSITIONS = new Set([0,8,13,21,26,34,39,47]);
 // 2-player pairs: Green+Blue (diagonal) or Yellow+Red (diagonal)
 
 // Home-column runways (5 cells leading toward center)
-// green  → left arm  (row 7, cols 1-5)   → bc-hc-r
-// red    → top arm   (col 7, rows 1-5)   → bc-hc-b
-// blue   → right arm (row 7, cols 9-13)  → bc-hc-y
-// yellow → bottom arm(col 7, rows 9-13)  → bc-hc-g
+// green  → left  arm  (row 7, cols 1-5)   → bc-hc-g
+// red    → top   arm  (col 7, rows 1-5)   → bc-hc-r
+// blue   → right arm  (row 7, cols 9-13)  → bc-hc-b
+// yellow → bottom arm (col 7, rows 9-13)  → bc-hc-y
 const HOME_COLS = {
-  green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],     // left  arm (bc-hc-r)
-  red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],      // top   arm (bc-hc-b)
-  blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],  // right arm (bc-hc-y)
-  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]   // bottom arm(bc-hc-g)
+  green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],     // left  arm (bc-hc-g)
+  red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],      // top   arm (bc-hc-r)
+  blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],  // right arm (bc-hc-b)
+  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]   // bottom arm(bc-hc-y)
 };
 // Path index where each color's pieces enter the main track
 const ENTRY_POS      = { green:0, red:13, blue:26, yellow:39 };
