@@ -748,10 +748,14 @@ function rollDice(computerTurn = false) {
       const movable = getMovablePieces(localColor, value);
       if (movable.length === 0) {
         addLog('No valid moves. Turn skipped.','move');
-        broadcastGameState('roll');
-        setTimeout(nextTurn, 900);
+        // Advance turn FIRST, then broadcast so both clients see the new turn
+        setTimeout(() => {
+          nextTurn();
+          broadcastGameState('turn');  // carries the already-advanced G.turn
+        }, 900);
       } else if (movable.length === 1) {
         addLog('Auto-moving only available piece.','move');
+        broadcastGameState('roll');
         const el = $(`piece-${localColor}-${movable[0]}`);
         if (el) el.classList.add('blinking');
         setTimeout(() => {
@@ -759,12 +763,15 @@ function rollDice(computerTurn = false) {
           movePiece(localColor, movable[0], value);
         }, 700);
       } else {
+        // Player must pick a piece — just broadcast the roll value
+        broadcastGameState('roll');
         highlightMovable(value);
       }
     } else {
+      // AI / computerTurn — let aiMove handle its own broadcast after moving
+      broadcastGameState('roll');
       setTimeout(()=>aiMove(col,value),400);
     }
-    broadcastGameState('roll');
   });
 }
 
