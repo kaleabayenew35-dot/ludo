@@ -54,7 +54,6 @@ const selectedAmount = saved.selectedAmount || 10;
 const opponent       = saved.opponent       || { name: 'AI' };
 const autoStart      = saved.autoStart      || false;
 const roomId          = saved.roomId || null;
-const localColor      = saved.playerColor || 'yellow';
 const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 const ACTIVE_COLORS   = playerCount === 2
@@ -62,6 +61,8 @@ const ACTIVE_COLORS   = playerCount === 2
   : playerCount === 3
     ? ['yellow', 'blue', 'green']
     : ['yellow', 'blue', 'green', 'red'];
+const localPlayerIndex = lobbyPlayers.findIndex(lobbyPlayer => String(lobbyPlayer.name) === String(player.name));
+const localColor = saved.playerColor || ACTIVE_COLORS[Math.max(0, localPlayerIndex)];
 
 // ── Game state ────────────────────────────────────────────────
 // ── Game state ────────────────────────────────────────────────
