@@ -488,9 +488,12 @@ function applyRemoteAction(action) {
     const colorLabel = action.color.charAt(0).toUpperCase() + action.color.slice(1);
     addLog(`${colorLabel} rolled a ${action.value}`, 'roll');
     animateDice(action.value, null);
+    // Only update diceValue for display — do NOT set G.rolled here.
+    // G.rolled is part of the full game state and will be set correctly
+    // when applyRemoteGameState arrives. Setting it true here and never
+    // resetting it is what causes both clients' Roll buttons to lock up.
     G.diceValue = action.value;
-    G.rolled    = true;
-    updateGameUI();
+    // updateGameUI intentionally NOT called here — the full state sync does it
     return;
   }
 
@@ -508,7 +511,6 @@ function applyRemoteAction(action) {
         G.pieces[action.capture.other][action.capture.oidx] = -1;
         addLog(`${action.color} captured ${action.capture.other} piece ${action.capture.oidx+1}!`, 'win');
       }
-
       renderPieces();
       updateGameUI();
     });
