@@ -391,6 +391,13 @@ function updateGameUI() {
   const rollBtn = $('rollDiceBtn');
   if (rollBtn) rollBtn.disabled = !G.started || G.rolled || col !== localColor || G.eliminated[localColor];
 
+  // Dim dice scene when not rollable
+  const scene = document.querySelector('.dice-scene');
+  if (scene) {
+    const canRoll = G.started && !G.rolled && col === localColor && !G.eliminated[localColor];
+    scene.classList.toggle('dice-disabled', !canRoll);
+  }
+
   // Update only the active players' rows (ignore inactive colors)
   ACTIVE_COLORS.forEach((c, i) => {
     const row = $(`gpr-${c}`);
@@ -683,44 +690,45 @@ function randomSpinTransform() {
 
 // Shared dice roll visual — works for both player and AI
 function animateDice(value, onDone) {
-  const diceEl  = $('dice');
-  const lbl     = $('diceValueLabel');
+  const diceEl   = $('dice');
+  const lbl      = $('diceValueLabel');
   const diceArea = diceEl.closest('.dice-area');
+  const scene    = diceEl.closest('.dice-scene');
 
-  // Reset glow & label
+  // Reset glow, label, landing class
   if (diceArea) diceArea.classList.remove('rolled');
+  diceEl.classList.remove('landed');
   if (lbl) { lbl.textContent = ''; lbl.style.cssText = ''; }
+  if (scene) scene.classList.add('dice-disabled');
 
-  // Phase 1: fast diagonal spin (600ms)
+  // Phase 1: irregular tumble (rolling class triggers keyframe)
   diceEl.style.transition = 'none';
-  diceEl.style.transform  = randomSpinTransform();
   diceEl.classList.add('rolling');
 
-  // Phase 2: slow wobble then land (after 600ms fast spin)
   setTimeout(() => {
     diceEl.classList.remove('rolling');
 
-    // Intermediate slow spin to a random angle (200ms)
-    diceEl.style.transition = 'transform 0.25s ease-out';
-    diceEl.style.transform  = randomSpinTransform();
+    // Phase 2: glide to correct face
+    diceEl.style.transition = 'transform 0.5s cubic-bezier(0.15, 0.8, 0.25, 1)';
+    diceEl.style.transform  = DICE_TRANSFORMS[value];
 
-    // Phase 3: glide to correct face
     setTimeout(() => {
-      diceEl.style.transition = 'transform 0.5s cubic-bezier(0.15, 0.8, 0.25, 1)';
-      diceEl.style.transform  = DICE_TRANSFORMS[value];
+      // Landing squash — set the CSS variable so the animation knows the face
+      diceEl.style.setProperty('--dice-face-transform', DICE_TRANSFORMS[value]);
+      diceEl.classList.add('landed');
 
-      // Light up gold glow
       if (diceArea) diceArea.classList.add('rolled');
+      if (scene) scene.classList.remove('dice-disabled');
 
-      // Show value label
       if (lbl) {
         lbl.textContent = value;
-        lbl.style.cssText = 'font-size:22px;font-weight:800;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.5);';
+        lbl.style.cssText = 'font-size:20px;font-weight:800;color:#3a2800;text-shadow:0 1px 2px rgba(0,0,0,0.2);';
       }
 
+      setTimeout(() => { diceEl.classList.remove('landed'); }, 280);
       if (onDone) setTimeout(onDone, 550);
-    }, 260);
-  }, 600);
+    }, 520);
+  }, 850);
 }
 
 function rollDice(computerTurn = false) {

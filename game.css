@@ -167,3 +167,357 @@ body.game-page {
   .game-header-sep:not(:first-of-type),
   .game-header-stat:last-child { display: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   PREMIUM LUDO — Board, Pieces, Dice visual overhaul
+   Pure visual pass — JS game state / grid structure untouched.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Classic Ludo color tokens ────────────────────────────────── */
+.game-page {
+  --ludo-red:       #e63946;
+  --ludo-green:     #2a9d3f;
+  --ludo-yellow:    #f4c430;
+  --ludo-blue:      #1d4fd8;
+  --ludo-red-lt:    #ff8a96;
+  --ludo-green-lt:  #6adf86;
+  --ludo-yellow-lt: #ffe066;
+  --ludo-blue-lt:   #6ea3ff;
+  --ludo-red-dk:    #8c1c24;
+  --ludo-green-dk:  #185c26;
+  --ludo-yellow-dk: #b08a08;
+  --ludo-blue-dk:   #0e2d80;
+  --board-cream:    #f5f0e4;
+  --board-wood:     #6b3e10;
+  --board-wood-lt:  #c4914a;
+  --board-felt:     #2c4a1e;
+}
+
+/* ── Board outer frame — wooden bevel ────────────────────────── */
+.game-page .ludo-board {
+  border-radius: 8px !important;
+  border: 10px solid var(--board-wood) !important;
+  box-shadow:
+    inset 0 0 0 2px var(--board-wood-lt),
+    0 0 0 2px var(--board-wood-lt),
+    0 0 0 4px var(--board-wood),
+    0 20px 60px rgba(0,0,0,0.75),
+    0 8px 20px rgba(0,0,0,0.5) !important;
+  /* subtle wood grain using repeating linear gradients */
+  background:
+    repeating-linear-gradient(
+      92deg,
+      transparent,
+      transparent 3px,
+      rgba(255,255,255,0.015) 3px,
+      rgba(255,255,255,0.015) 6px
+    ),
+    #f5f0e4 !important;
+}
+
+/* ── Board background environment ────────────────────────────── */
+.board-wrapper {
+  /* felt-table surface around the board */
+  background: radial-gradient(ellipse at center, #3a6030 0%, #243818 100%);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.06),
+    inset 0 2px 8px rgba(0,0,0,0.5),
+    0 30px 80px rgba(0,0,0,0.8);
+}
+
+/* ── Track cells ─────────────────────────────────────────────── */
+.game-page .bc-path {
+  background: var(--board-cream) !important;
+  border: 0.5px solid #c4b990 !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.8), inset 0 -1px 1px rgba(0,0,0,0.06) !important;
+}
+.game-page .bc-path:hover { background: #faf6ec !important; }
+
+/* ── Home quadrant fill colors ───────────────────────────────── */
+.game-page .bc-rh { background: var(--ludo-red)    !important; border: none !important; }
+.game-page .bc-bh { background: var(--ludo-blue)   !important; border: none !important; }
+.game-page .bc-yh { background: var(--ludo-yellow) !important; border: none !important; }
+.game-page .bc-gh { background: var(--ludo-green)  !important; border: none !important; }
+
+/* ── Home-column arms ────────────────────────────────────────── */
+.game-page .bc-hc-r {
+  background: linear-gradient(135deg, var(--ludo-red-lt) 0%, var(--ludo-red) 100%) !important;
+  border: 0.5px solid rgba(0,0,0,0.12) !important; box-shadow: none !important;
+}
+.game-page .bc-hc-b {
+  background: linear-gradient(135deg, var(--ludo-blue-lt) 0%, var(--ludo-blue) 100%) !important;
+  border: 0.5px solid rgba(0,0,0,0.12) !important; box-shadow: none !important;
+}
+.game-page .bc-hc-y {
+  background: linear-gradient(135deg, var(--ludo-yellow-lt) 0%, var(--ludo-yellow) 100%) !important;
+  border: 0.5px solid rgba(0,0,0,0.12) !important; box-shadow: none !important;
+}
+.game-page .bc-hc-g {
+  background: linear-gradient(135deg, var(--ludo-green-lt) 0%, var(--ludo-green) 100%) !important;
+  border: 0.5px solid rgba(0,0,0,0.12) !important; box-shadow: none !important;
+}
+
+/* ── Safe-cell star ──────────────────────────────────────────── */
+.game-page .bc-safe {
+  background: var(--board-cream) !important;
+  border: 0.5px solid #c4b990 !important;
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.8) !important;
+}
+.game-page .bc-safe::after {
+  content: '★' !important;
+  font-size: clamp(7px, 1.3vmin, 14px) !important;
+  color: #b09040 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.8) !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}
+
+/* ── Center surrounding cells ────────────────────────────────── */
+.game-page .bc-center {
+  background: var(--board-cream) !important;
+  border: 0.5px solid #c4b990 !important;
+}
+
+/* ── Center pinwheel — 4 triangles with radial glow ─────────── */
+.game-page .bc-center-core {
+  background: conic-gradient(from 45deg at 50% 50%,
+    var(--ludo-red)    0deg   90deg,
+    var(--ludo-blue)   90deg  180deg,
+    var(--ludo-yellow) 180deg 270deg,
+    var(--ludo-green)  270deg 360deg) !important;
+  box-shadow:
+    inset 0 0 12px rgba(0,0,0,0.3),
+    0 0 18px rgba(255,220,80,0.25) !important;
+  border: none !important;
+}
+
+/* ── Home-yard pockets ───────────────────────────────────────── */
+.game-page .bc-hcircle {
+  border-radius: 50% !important;
+  margin: 12% !important;
+  border: 2px solid rgba(0,0,0,0.30) !important;
+  background: rgba(0,0,0,0.22) !important;
+  box-shadow:
+    inset 0 4px 8px rgba(0,0,0,0.50),
+    inset 0 -2px 4px rgba(255,255,255,0.22),
+    0 2px 4px rgba(0,0,0,0.35) !important;
+}
+
+/* ════════════════════════════════════════
+   PIECES — glossy 3-D plastic pawns
+   ════════════════════════════════════════ */
+.game-page .piece {
+  border-radius: 50% !important;
+  border: 2px solid rgba(255,255,255,0.55) !important;
+  cursor: pointer !important;
+  box-shadow:
+    inset 0 -5px 10px rgba(0,0,0,0.55),
+    inset 0 4px 7px rgba(255,255,255,0.60),
+    0 5px 12px rgba(0,0,0,0.65),
+    0 2px 4px rgba(0,0,0,0.40) !important;
+  transition: transform 0.18s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s !important;
+}
+/* Specular highlight */
+.game-page .piece::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 7% !important; left: 9% !important;
+  width: 40% !important; height: 34% !important;
+  background: radial-gradient(ellipse at 35% 30%, rgba(255,255,255,0.95), rgba(255,255,255,0) 68%) !important;
+  border-radius: 50% !important;
+  pointer-events: none !important;
+  z-index: 2 !important;
+}
+/* Remove chess-pawn glyph — clean dome */
+.game-page .piece::after { content: '' !important; }
+
+/* Classic Ludo piece colors */
+.game-page .piece.red {
+  background: radial-gradient(circle at 36% 28%,
+    #ff9eaa 0%, var(--ludo-red) 48%, var(--ludo-red-dk) 100%) !important;
+}
+.game-page .piece.green {
+  background: radial-gradient(circle at 36% 28%,
+    #7ef09a 0%, var(--ludo-green) 48%, var(--ludo-green-dk) 100%) !important;
+}
+.game-page .piece.yellow {
+  background: radial-gradient(circle at 36% 28%,
+    #ffe57a 0%, var(--ludo-yellow) 48%, var(--ludo-yellow-dk) 100%) !important;
+}
+.game-page .piece.blue {
+  background: radial-gradient(circle at 36% 28%,
+    #80aaff 0%, var(--ludo-blue) 48%, var(--ludo-blue-dk) 100%) !important;
+}
+
+.game-page .piece:hover {
+  transform: scale(1.22) translateY(-3px) !important;
+  z-index: 20 !important;
+}
+
+/* Selectable — soft pulsing glow ring + gentle bounce */
+.game-page .piece.selectable,
+.game-page .piece.blinking {
+  animation: ludoPiecePulse 0.65s ease-in-out infinite !important;
+  z-index: 20 !important;
+}
+@keyframes ludoPiecePulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    box-shadow:
+      inset 0 -5px 10px rgba(0,0,0,0.55),
+      inset 0  4px  7px rgba(255,255,255,0.60),
+      0 5px 12px rgba(0,0,0,0.65),
+      0 0 0 0 rgba(255,220,30,0);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.20);
+    box-shadow:
+      inset 0 -5px 10px rgba(0,0,0,0.55),
+      inset 0  4px  7px rgba(255,255,255,0.60),
+      0 12px 20px rgba(0,0,0,0.55),
+      0 0 0 7px rgba(255,220,30,0.55);
+  }
+}
+
+/* Step hop — arc up, squash on landing */
+.game-page .piece.stepping {
+  animation: ludoPieceStep 0.16s ease-out !important;
+  z-index: 20 !important;
+}
+@keyframes ludoPieceStep {
+  0%   { transform: scale(1, 1)      translateY(0); }
+  30%  { transform: scale(0.88,1.18) translateY(-11px); }
+  65%  { transform: scale(1.15,0.85) translateY(1px); }
+  100% { transform: scale(1, 1)      translateY(0); }
+}
+
+/* Stacked pieces — slight offsets for crowded look */
+.game-page .piece-stack.count-2 .piece:nth-child(1) { transform: translate(-8%,-6%) scale(0.92) !important; }
+.game-page .piece-stack.count-2 .piece:nth-child(2) { transform: translate(8%,6%) scale(0.92) !important; }
+.game-page .piece-stack.count-3 .piece:nth-child(1) { transform: translate(-7%,-7%) scale(0.86) !important; }
+.game-page .piece-stack.count-3 .piece:nth-child(2) { transform: translate(7%,-7%) scale(0.86) !important; }
+.game-page .piece-stack.count-3 .piece:nth-child(3) { transform: translateY(5%) scale(0.86) !important; }
+.game-page .piece-stack.count-4 .piece:nth-child(1) { transform: translate(-7%,-7%) scale(0.80) !important; }
+.game-page .piece-stack.count-4 .piece:nth-child(2) { transform: translate(7%,-7%) scale(0.80) !important; }
+.game-page .piece-stack.count-4 .piece:nth-child(3) { transform: translate(-7%, 7%) scale(0.80) !important; }
+.game-page .piece-stack.count-4 .piece:nth-child(4) { transform: translate( 7%, 7%) scale(0.80) !important; }
+
+/* ── Sidebar color dots use classic Ludo colors ──────────────── */
+.game-page .color-dot.red    { background: var(--ludo-red)    !important; }
+.game-page .color-dot.green  { background: var(--ludo-green)  !important; }
+.game-page .color-dot.yellow { background: var(--ludo-yellow) !important; }
+.game-page .color-dot.blue   { background: var(--ludo-blue)   !important; }
+.game-page .turn-dot.red    { background: var(--ludo-red);    box-shadow: 0 0 8px var(--ludo-red);    }
+.game-page .turn-dot.green  { background: var(--ludo-green);  box-shadow: 0 0 8px var(--ludo-green);  }
+.game-page .turn-dot.yellow { background: var(--ludo-yellow); box-shadow: 0 0 8px var(--ludo-yellow); }
+.game-page .turn-dot.blue   { background: var(--ludo-blue);   box-shadow: 0 0 8px var(--ludo-blue);   }
+
+/* ════════════════════════════════════════
+   DICE — classic physical die
+   ════════════════════════════════════════ */
+
+/* Scene wrapper */
+.game-page .dice-scene {
+  filter:
+    drop-shadow(0 8px 16px rgba(0,0,0,0.70))
+    drop-shadow(0 2px 4px rgba(0,0,0,0.45)) !important;
+  transition: filter 0.2s, transform 0.2s !important;
+}
+.game-page .dice-scene:hover {
+  filter:
+    drop-shadow(0 12px 24px rgba(0,0,0,0.75))
+    drop-shadow(0 4px 8px rgba(0,0,0,0.5)) !important;
+  transform: translateY(-3px) scale(1.07) !important;
+}
+.game-page .dice-scene:active {
+  transform: translateY(1px) scale(0.95) !important;
+}
+
+/* Glow ring — warm amber instead of purple */
+.game-page .dice-area::before {
+  background: radial-gradient(circle, rgba(200,160,40,0.22) 0%, transparent 70%) !important;
+}
+.game-page .dice-area.rolled::before {
+  background: radial-gradient(circle, rgba(240,200,60,0.50) 0%, transparent 70%) !important;
+}
+
+/* Cube faces — cream/white with bevel, classic die look */
+.game-page .cube-face {
+  background:
+    linear-gradient(145deg,
+      rgba(255,255,255,0.90) 0%,
+      rgba(235,228,210,0.95) 50%,
+      rgba(210,200,180,1.00) 100%) !important;
+  border: 1.5px solid rgba(160,140,100,0.60) !important;
+  border-radius: 10px !important;
+  box-shadow:
+    inset 0  2px 5px rgba(255,255,255,0.90),
+    inset 0 -3px 6px rgba(0,0,0,0.18) !important;
+}
+/* Plastic sheen on each face */
+.game-page .cube-face::after {
+  background: linear-gradient(135deg, rgba(255,255,255,0.50), transparent) !important;
+  border-radius: 50% !important;
+}
+
+/* Pips — classic black dots, no glow */
+.game-page .dot {
+  background: radial-gradient(circle at 38% 32%, #4a4030, #1a1408) !important;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.12), 0 1px 2px rgba(0,0,0,0.55) !important;
+  width: 8px !important; height: 8px !important;
+  border-radius: 50% !important;
+}
+
+/* Disabled state — dim dice when not rollable */
+.game-page .dice-scene.dice-disabled {
+  opacity: 0.45;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)) grayscale(0.4) !important;
+  pointer-events: none;
+  transform: none !important;
+}
+
+/* Roll animation — irregular tumble, slows to stop */
+.game-page .dice-cube.rolling {
+  animation: ludoDiceRoll 0.85s cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important;
+}
+@keyframes ludoDiceRoll {
+  0%   { transform: translateZ(-28px) rotateX(0deg)   rotateY(0deg)   rotateZ(0deg);   }
+  15%  { transform: translateZ(-28px) rotateX(145deg) rotateY(70deg)  rotateZ(40deg);  }
+  30%  { transform: translateZ(-28px) rotateX(260deg) rotateY(155deg) rotateZ(110deg); }
+  48%  { transform: translateZ(-28px) rotateX(370deg) rotateY(240deg) rotateZ(195deg); }
+  62%  { transform: translateZ(-28px) rotateX(445deg) rotateY(305deg) rotateZ(255deg); }
+  75%  { transform: translateZ(-28px) rotateX(500deg) rotateY(345deg) rotateZ(295deg); }
+  88%  { transform: translateZ(-28px) rotateX(520deg) rotateY(358deg) rotateZ(310deg); }
+  100% { transform: translateZ(-28px) rotateX(360deg) rotateY(360deg) rotateZ(360deg); }
+}
+
+/* Landing squash — brief scale-Y squeeze then snap back */
+.game-page .dice-cube.landed {
+  animation: ludoDiceLand 0.25s ease-out forwards !important;
+}
+@keyframes ludoDiceLand {
+  0%   { transform: var(--dice-face-transform, translateZ(-28px)) scaleY(0.80) scaleX(1.08); }
+  55%  { transform: var(--dice-face-transform, translateZ(-28px)) scaleY(1.06) scaleX(0.97); }
+  100% { transform: var(--dice-face-transform, translateZ(-28px)) scaleY(1)    scaleX(1); }
+}
+
+/* Thud shadow pulse on landing */
+.game-page .dice-area.rolled::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.35);
+  filter: blur(4px);
+  animation: ludoDiceThud 0.4s ease-out forwards;
+}
+@keyframes ludoDiceThud {
+  0%   { opacity: 0.8; width: 50px; }
+  100% { opacity: 0;   width: 36px; }
+}
