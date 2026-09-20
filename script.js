@@ -1621,10 +1621,6 @@ function buildOnlineRoomCard(room) {
     inGame.textContent = '🎮 Game in progress';
     actionWrap.appendChild(inGame);
   } else if (iAmHere) {
-    const leaveBtn = make('button', 'or-leave-btn');
-    leaveBtn.textContent = '✗ Leave Room';
-    leaveBtn.addEventListener('click', () => handleOnlineLeave(safeRoom.id, card));
-    actionWrap.appendChild(leaveBtn);
     if (count >= 2 && safeRoom.status === 'countdown') {
       const startingMsg = make('div', 'or-starting-msg');
       startingMsg.innerHTML = `▶ Starting in <strong>${safeRoom.countdown}s</strong>…`;
