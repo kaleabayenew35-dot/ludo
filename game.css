@@ -267,12 +267,25 @@ body.game-page {
 }
 .game-page .bc-safe::after {
   content: '★' !important;
-  font-size: clamp(7px, 1.3vmin, 14px) !important;
+  font-size: clamp(12px, 2.2vmin, 22px) !important;
   color: #b09040 !important;
   text-shadow: 0 1px 0 rgba(255,255,255,0.8) !important;
   line-height: 1 !important;
   pointer-events: none !important;
 }
+
+/* Entry safe cells — tinted in their color with matching star */
+.game-page #bc-6-1  { background: linear-gradient(135deg, rgba(107,215,120,0.35), rgba(42,157,63,0.20)) !important; border-color: rgba(42,157,63,0.45) !important; }
+.game-page #bc-6-1::after  { color: var(--ludo-green)  !important; text-shadow: 0 0 6px rgba(42,157,63,0.6) !important; }
+
+.game-page #bc-1-8  { background: linear-gradient(135deg, rgba(255,160,168,0.35), rgba(230,57,70,0.20)) !important; border-color: rgba(230,57,70,0.45) !important; }
+.game-page #bc-1-8::after  { color: var(--ludo-red)    !important; text-shadow: 0 0 6px rgba(230,57,70,0.6) !important; }
+
+.game-page #bc-8-13 { background: linear-gradient(135deg, rgba(110,163,255,0.35), rgba(29,79,216,0.20)) !important; border-color: rgba(29,79,216,0.45) !important; }
+.game-page #bc-8-13::after { color: var(--ludo-blue)   !important; text-shadow: 0 0 6px rgba(29,79,216,0.6) !important; }
+
+.game-page #bc-13-6 { background: linear-gradient(135deg, rgba(255,230,100,0.45), rgba(244,196,48,0.25)) !important; border-color: rgba(244,196,48,0.55) !important; }
+.game-page #bc-13-6::after { color: var(--ludo-yellow) !important; text-shadow: 0 0 6px rgba(244,196,48,0.7) !important; }
 
 /* ── Center surrounding cells — gold ────────────────────────── */
 .game-page .bc-center,
