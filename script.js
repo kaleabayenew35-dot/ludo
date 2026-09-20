@@ -1757,7 +1757,9 @@ function startRoomPoll(roomId) {
       const res  = await fetch(`${LUDO_API_URL}/api/rooms?bet=${S.selectedAmount}`, { cache: 'no-store' });
       const data = await res.json();
       const room = (data.rooms || []).find(r => r.id === roomId);
-      if (!room) { stopRoomPoll(); return; }
+      // A room can briefly be absent while the backend rotates its snapshot.
+      // Keep polling so the player does not get stranded on the room screen.
+      if (!room) return;
 
       // Update card live
       const card = document.querySelector(`[data-room-id="${roomId}"]`);
