@@ -468,7 +468,7 @@ function broadcastAction(action) {
   if (!roomId || !GAME_SOCKET || !GAME_SOCKET.connected) return;
   GAME_SOCKET.emit('game:action', {
     roomId,
-    action: { ...action, ts: Date.now() },
+    action: { ...action, socketId: GAME_SOCKET.id, ts: Date.now() },
   });
 }
 
@@ -479,14 +479,13 @@ function broadcastAction(action) {
  */
 function applyRemoteAction(action) {
   if (!action || !G.started) return;
+  if (action.socketId === GAME_SOCKET?.id) return;
+  if (action.color === localColor) return;
 
   if (action.type === 'roll') {
-    // Only animate if this roll is from a different player
-    if (action.color === localColor) return;
     const colorLabel = action.color.charAt(0).toUpperCase() + action.color.slice(1);
     addLog(`${colorLabel} rolled a ${action.value}`, 'roll');
     animateDice(action.value, null);
-    // Update state so UI shows the rolled value
     G.diceValue = action.value;
     G.rolled    = true;
     updateGameUI();
@@ -494,13 +493,8 @@ function applyRemoteAction(action) {
   }
 
   if (action.type === 'move') {
-    // Only animate if this move is from a different player
-    if (action.color === localColor) return;
-    // Sync start position before animating so computeSteps is accurate
     G.pieces[action.color][action.idx] = action.fromPos;
-    // Animate the piece walking step by step
     animatePieceMove(action.color, action.idx, action.steps, () => {
-      // Apply final position
       G.pieces[action.color][action.idx] = action.finalPos;
       if (action.finalPos === 57) {
         G.finished[action.color]++;
@@ -508,7 +502,6 @@ function applyRemoteAction(action) {
       } else if (action.fromPos === -1) {
         addLog(`${action.color} piece ${action.idx+1} entered the board!`, 'move');
       }
-      // Apply any capture that came with the move
       if (action.capture) {
         G.pieces[action.capture.other][action.capture.oidx] = -1;
         addLog(`${action.color} captured ${action.capture.other} piece ${action.capture.oidx+1}!`, 'win');
@@ -619,8 +612,8 @@ function connectGameSocket() {
     const action = payload.action;
     if (!action) return;
 
-    // Ignore stale local echoes; remote actions still animate for all room members.
-    if (action.color === localColor) return;
+    // Ignore sender echo but still animate on every other client in the room.
+    if (action.socketId === GAME_SOCKET.id) return;
     applyRemoteAction(action);
   });
 }
