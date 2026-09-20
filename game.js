@@ -45,10 +45,10 @@ const ENTRY_POS      = { green:0, red:13, blue:26, yellow:39 };
 const HOME_COL_ENTRY = { green:51, red:12, blue:25, yellow:38 };
 // Starting home slots — each color in its own board corner
 const HOME_SLOTS = {
-  green:  [[1,1],[1,4],[4,1],[4,4]],            // top-left     (bc-rh area)
-  red:    [[1,10],[1,13],[4,10],[4,13]],         // top-right    (bc-bh area)
-  blue:   [[10,10],[10,13],[13,10],[13,13]],     // bottom-right (bc-yh area)
-  yellow: [[10,1],[10,4],[13,1],[13,4]]          // bottom-left  (bc-gh area)
+  green:  [[1,1],[1,4],[4,1],[4,4]],            // top-left     (bc-gh area)
+  red:    [[1,10],[1,13],[4,10],[4,13]],         // top-right    (bc-rh area)
+  blue:   [[10,10],[10,13],[13,10],[13,13]],     // bottom-right (bc-bh area)
+  yellow: [[10,1],[10,4],[13,1],[13,4]]          // bottom-left  (bc-yh area)
 };
 
 const COLORS     = ['red','blue','green','yellow'];
