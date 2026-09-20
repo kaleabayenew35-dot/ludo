@@ -420,7 +420,6 @@ function renderDashboard() {
   // Right Panel Stats
   const rpw = $('sideWins'); if (rpw) rpw.textContent = wins;
   const rpl = $('sideLosses'); if (rpl) rpl.textContent = losses;
-  const rpd = $('sideDraws'); if (rpd) rpd.textContent = S.player.draws || 0;
   const rpr = $('ringPct');
   const ring = $('ringFill');
   if (rpr) {
@@ -1574,7 +1573,7 @@ function buildOnlineRoomCard(room) {
       <div class="or-avatar you-av">${init}</div>
       <div class="or-player-info">
         <span class="or-player-name">${S.player.name} <span class="or-you-tag">YOU</span></span>
-        <span class="or-player-stats">✓${S.player.wins||0} ✗${S.player.losses||0} 🪙${S.player.balance||0}</span>
+        <span class="or-player-stats">✓${S.player.wins||0} ✗${S.player.losses||0}</span>
       </div>
       <span class="or-bet-pill">${S.selectedAmount} ETB</span>`;
     playersList.appendChild(youRow);
@@ -1593,7 +1592,7 @@ function buildOnlineRoomCard(room) {
       <div class="or-avatar" style="background:${color}">${label.charAt(0).toUpperCase()}</div>
       <div class="or-player-info">
         <span class="or-player-name">${label} <span class="or-online-tag">Online</span></span>
-        <span class="or-player-stats">✓${p?.wins || 0} ✗${p?.losses || 0} 🪙${p?.balance || 0}</span>
+        <span class="or-player-stats">✓${p?.wins || 0} ✗${p?.losses || 0}</span>
       </div>
       <span class="or-bet-pill">${safeRoom.betAmount} ETB</span>`;
     playersList.appendChild(pRow);
