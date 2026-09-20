@@ -88,9 +88,14 @@ const COLOR_EMOJIS = { red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡' };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 const SYSTEM_BACKEND_URL = (window.__SYSTEM_BACKEND_URL__ || 'https://system-backend-1u5m.onrender.com').replace(/\/$/, '');
-const getColorOrderForPlayerCount = (playerCount = 2) => {
+const getColorOrderForPlayerCount = (playerCount = 2, roomId) => {
   const safeCount = Math.min(Math.max(Number(playerCount) || 2, 2), 4);
-  if (safeCount === 2) return ['red', 'yellow'];
+  if (safeCount === 2) {
+    const roomNumber = Number(String(roomId || '').split('-').pop());
+    return Number.isInteger(roomNumber) && roomNumber % 2 === 0
+      ? ['green', 'blue']
+      : ['red', 'yellow'];
+  }
   if (safeCount === 3) return ['yellow', 'red', 'green'];
   return ['yellow', 'blue', 'green', 'red'];
 };
@@ -770,14 +775,14 @@ if (_forfeitBtn) {
 }
 
 function currentColor() {
-  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2), room.id);
   return activeColors[S.game.turn % activeColors.length];
 }
 
 function renderGamePlayers() {
   const container = $('gamePlayers');
   container.innerHTML = '';
-  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2), room.id);
   const playerNames = activeColors.map((col, i) => {
     if (i === 0) return 'You (' + col.charAt(0).toUpperCase() + col.slice(1) + ')';
     return 'AI ' + col.charAt(0).toUpperCase() + col.slice(1);
@@ -792,7 +797,7 @@ function renderGamePlayers() {
 }
 
 function updateGameUI() {
-  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2), room.id);
   const col = currentColor();
   const dot = $('turnDot'); if (dot) dot.className = `turn-dot ${col}`;
   const txt = $('turnText'); if (txt) txt.textContent = (col === 'red' ? 'Your' : col.charAt(0).toUpperCase()+col.slice(1)) + "'s Turn";
@@ -977,7 +982,7 @@ function aiMove(color, diceVal) {
 
 function nextTurn(forceColor) {
   S.game.rolled = false;
-  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2), room.id);
   if (!forceColor) S.game.turn = (S.game.turn + 1) % activeColors.length;
   else S.game.turn = activeColors.indexOf(forceColor);
   updateGameUI();
@@ -1817,7 +1822,10 @@ function updateRoomCount(rooms) {
 function redirectFromIndex(room) {
   const auth      = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
   const playerIndex = room.players.findIndex(player => player.name === S.player.name);
-  const colorRoster = room.players.length === 2 ? ['red', 'yellow'] : room.players.length === 3 ? ['yellow', 'red', 'green'] : ['yellow', 'blue', 'green', 'red'];
+  const roomNumber = Number(String(room.id || '').split('-').pop());
+  const colorRoster = room.players.length === 2
+    ? (Number.isInteger(roomNumber) && roomNumber % 2 === 0 ? ['green', 'blue'] : ['red', 'yellow'])
+    : room.players.length === 3 ? ['yellow', 'red', 'green'] : ['yellow', 'blue', 'green', 'red'];
   const gameState = {
     name: S.player.name, balance: S.player.balance, wins: S.player.wins||0,
     losses: S.player.losses||0, totalWon: S.player.totalWon||0, totalLost: S.player.totalLost||0,

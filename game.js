@@ -40,9 +40,14 @@ const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 const GAME_SOCKET = typeof io !== 'undefined' ? io(LUDO_API_URL, { transports: ['websocket', 'polling'] }) : null;
 
-function getColorOrderForPlayerCount(playerCount) {
+function getColorOrderForPlayerCount(playerCount, roomId) {
   const safeCount = Math.min(Math.max(Number(playerCount) || 2, 2), 4);
-  if (safeCount === 2) return ['red', 'yellow'];
+  if (safeCount === 2) {
+    const roomNumber = Number(String(roomId || '').split('-').pop());
+    return Number.isInteger(roomNumber) && roomNumber % 2 === 0
+      ? ['green', 'blue']
+      : ['red', 'yellow'];
+  }
   if (safeCount === 3) return ['yellow', 'red', 'green'];
   return ['yellow', 'blue', 'green', 'red'];
 }
@@ -70,7 +75,7 @@ const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 // 3 players: yellow + red + green
 // 4 players: yellow + blue + green + red
 const ACTIVE_COLORS = playerCount === 2
-  ? ['red', 'yellow']
+  ? getColorOrderForPlayerCount(playerCount, roomId)
   : playerCount === 3
     ? ['yellow', 'red', 'green']
     : ['yellow', 'blue', 'green', 'red'];

@@ -218,8 +218,9 @@ function connectSocket() {
 function redirectToGame(betAmount, players) {
   var auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
   var playerIndex = players.findIndex(function(player){ return player.name === state.player.name; });
+  var roomNumber = Number(String(state.currentRoomId || '').split('-').pop());
   var colorRoster = players.length === 2
-    ? ['red', 'yellow']
+    ? (Number.isInteger(roomNumber) && roomNumber % 2 === 0 ? ['green', 'blue'] : ['red', 'yellow'])
     : players.length === 3
       ? ['yellow', 'red', 'green']
       : ['yellow', 'blue', 'green', 'red'];
