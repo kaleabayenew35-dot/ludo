@@ -724,30 +724,51 @@ function animateDice(value, onDone) {
 }
 
 function rollDice(computerTurn = false) {
-  const col   = currentColor();
+  const col = currentColor();
   if (!G.started || G.rolled || (!computerTurn && col !== localColor)) return;
   const value = Math.floor(Math.random()*6)+1;
-  G.diceValue=value; G.rolled=true;
-  const rollBtn = $('rollDiceBtn'); if(rollBtn) rollBtn.disabled=true;
+
+  // ── Three-sixes rule: track consecutive 6s for this turn ──────
+  if (value === 6) {
+    G.consecutiveSixes = (G.consecutiveSixes || 0) + 1;
+  } else {
+    G.consecutiveSixes = 0;
+  }
+
+  if (G.consecutiveSixes >= 3) {
+    // Third 6 in a row — forfeit entire turn, reset counter
+    G.consecutiveSixes = 0;
+    G.rolled = true; // prevent another roll
+    const rollBtn = $('rollDiceBtn'); if (rollBtn) rollBtn.disabled = true;
+    broadcastAction({ type: 'roll', color: col, value });
+    animateDice(value, () => {
+      G.updatedAt = Date.now();
+      toast('Three 6s in a row — turn forfeited!', 'error');
+      setTimeout(() => {
+        nextTurn();
+        broadcastGameState('turn');
+      }, 900);
+    });
+    return;
+  }
+
+  G.diceValue = value; G.rolled = true;
+  const rollBtn = $('rollDiceBtn'); if(rollBtn) rollBtn.disabled = true;
 
   // Broadcast the roll immediately so remote clients start their animation
-  // in parallel — don't wait for the local animation to finish
   broadcastAction({ type: 'roll', color: col, value });
 
   animateDice(value, () => {
     G.updatedAt = Date.now();
-    addLog(`${col.charAt(0).toUpperCase()+col.slice(1)} rolled a ${value}`,'roll');
-    if (col===localColor) {
+    if (col === localColor) {
       const movable = getMovablePieces(localColor, value);
       if (movable.length === 0) {
-        addLog('No valid moves. Turn skipped.','move');
-        // Advance turn FIRST, then broadcast so both clients see the new turn
+        // No valid moves — advance turn first, then broadcast new turn
         setTimeout(() => {
           nextTurn();
-          broadcastGameState('turn');  // carries the already-advanced G.turn
+          broadcastGameState('turn');
         }, 900);
       } else if (movable.length === 1) {
-        addLog('Auto-moving only available piece.','move');
         broadcastGameState('roll');
         const el = $(`piece-${localColor}-${movable[0]}`);
         if (el) el.classList.add('blinking');
@@ -756,27 +777,47 @@ function rollDice(computerTurn = false) {
           movePiece(localColor, movable[0], value);
         }, 700);
       } else {
-        // Player must pick a piece — just broadcast the roll value
         broadcastGameState('roll');
         highlightMovable(value);
       }
     } else {
-      // AI / computerTurn — let aiMove handle its own broadcast after moving
       broadcastGameState('roll');
-      setTimeout(()=>aiMove(col,value),400);
+      setTimeout(() => aiMove(col, value), 400);
     }
   });
 }
 
 // ── Pieces ────────────────────────────────────────────────────
 function getMovablePieces(color, diceVal) {
-  const movable=[];
-  G.pieces[color].forEach((pos,idx)=>{
-    if (pos===57) return;
-    if (pos===-1 && diceVal===6){movable.push(idx);return;}
-    if (pos===-1) return;
-    if (pos>=52){ if((pos-52+diceVal)<=5) movable.push(idx); }
-    else { movable.push(idx); }
+  const movable = [];
+  G.pieces[color].forEach((pos, idx) => {
+    if (pos === 57) return; // already home
+    if (pos === -1) {
+      if (diceVal === 6) movable.push(idx); // needs 6 to exit yard
+      return;
+    }
+    if (pos >= 52) {
+      // In home column — only move if exact roll doesn't overshoot
+      if ((pos - 52 + diceVal) <= 5) movable.push(idx);
+      return;
+    }
+    // On main path — check blockade: opponent blockade blocks movement
+    // A blockade is 2+ opponent tokens on the same cell
+    const homeEntry = HOME_COL_ENTRY[color];
+    let cur = pos;
+    let blockedByBlockade = false;
+    for (let s = 0; s < diceVal; s++) {
+      cur = (cur + 1) % 52;
+      if (cur === homeEntry) break; // entering home column — skip blockade check beyond
+      // Check if any opponent has a blockade (2+ tokens) on this cell
+      ACTIVE_COLORS.forEach(other => {
+        if (other === color) return;
+        const count = G.pieces[other].filter(p => p === cur).length;
+        if (count >= 2) blockedByBlockade = true;
+      });
+      if (blockedByBlockade) break;
+    }
+    if (!blockedByBlockade) movable.push(idx);
   });
   return movable;
 }
@@ -883,11 +924,14 @@ function movePiece(color, idx, steps) {
 
   // ── Calculate final position & side-effects (don't apply yet) ──
   if (pos === -1) {
+    // Exiting yard — always bonus turn on 6 (rule #2)
     finalPos = ENTRY_POS[color];
-    if (steps === 6) bonusTurn = true;
+    bonusTurn = true; // rolling 6 always grants extra roll
   } else if (pos >= 52) {
     const next = pos - 52 + steps;
     finalPos = next >= 5 ? 57 : 52 + next;
+    // Reaching center home grants bonus turn (rule #6)
+    if (finalPos === 57) bonusTurn = true;
   } else {
     const homeEntry = HOME_COL_ENTRY[color];
     let curPos = pos;
@@ -902,16 +946,25 @@ function movePiece(color, idx, steps) {
     }
     if (finalPos === undefined) finalPos = (pos + steps) % 52;
 
-    // Check captures on final position
+    // Rolling 6 and moving on the board grants extra roll (rule #2)
+    if (steps === 6) bonusTurn = true;
+
+    // Reaching center home from main path via home column also grants bonus
+    if (finalPos === 57) bonusTurn = true;
+
+    // Check captures on final position (only on main path, not safe cells)
     if (finalPos < 52 && !SAFE_POSITIONS.has(finalPos)) {
       ACTIVE_COLORS.forEach(other => {
         if (other === color) return;
-        G.pieces[other].forEach((opos, oidx) => {
-          if (opos === finalPos) {
-            captureInfo = { other, oidx };
-            bonusTurn = true;
-          }
-        });
+        // Only capture a single token — a blockade (2+) cannot be captured
+        const tokensHere = G.pieces[other].reduce((acc, p, i) => {
+          if (p === finalPos) acc.push(i);
+          return acc;
+        }, []);
+        if (tokensHere.length === 1) {
+          captureInfo = { other, oidx: tokensHere[0] };
+          bonusTurn = true; // capture also grants extra roll (rule #4)
+        }
       });
     }
   }
@@ -976,7 +1029,8 @@ function aiMove(color,diceVal) {
 }
 
 function nextTurn(forceColor) {
-  G.rolled=false;
+  G.rolled = false;
+  G.consecutiveSixes = 0; // reset six-counter when turn changes (rule #7)
   if (!forceColor) {
     // advance turn, skipping eliminated players
     do {
