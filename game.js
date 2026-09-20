@@ -20,27 +20,35 @@ const MAIN_PATH = [
   [7,0],[6,0]
 ];
 const SAFE_POSITIONS = new Set([0,8,13,21,26,34,39,47]);
-// Home columns — each color's 5-cell runway leading to the center.
-// Matches board CSS: bc-hc-r=left(row7), bc-hc-b=top(col7),
-//                   bc-hc-y=right(row7), bc-hc-g=bottom(col7)
+// ── Board corner layout ──────────────────────────────────────
+// ┌────────────┬────────────┐
+// │  GREEN(TL) │   RED(TR)  │
+// ├────────────┼────────────┤
+// │ YELLOW(BL) │  BLUE(BR)  │
+// └────────────┴────────────┘
+// 2-player pairs: Green+Blue (diagonal) or Yellow+Red (diagonal)
+
+// Home-column runways (5 cells leading toward center)
+// green  → left arm  (row 7, cols 1-5)   → bc-hc-r
+// red    → top arm   (col 7, rows 1-5)   → bc-hc-b
+// blue   → right arm (row 7, cols 9-13)  → bc-hc-y
+// yellow → bottom arm(col 7, rows 9-13)  → bc-hc-g
 const HOME_COLS = {
-  red:    [[7,1],[7,2],[7,3],[7,4],[7,5]],     // bc-hc-r  (left,  row 7)
-  blue:   [[1,7],[2,7],[3,7],[4,7],[5,7]],     // bc-hc-b  (top,   col 7)
-  yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]], // bc-hc-y  (right, row 7)
-  green:  [[13,7],[12,7],[11,7],[10,7],[9,7]]  // bc-hc-g  (bottom,col 7)
+  green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],     // left  arm (bc-hc-r)
+  red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],      // top   arm (bc-hc-b)
+  blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],  // right arm (bc-hc-y)
+  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]   // bottom arm(bc-hc-g)
 };
-// Entry positions on MAIN_PATH where each color's pieces enter the track
-const ENTRY_POS      = { red:0, blue:13, yellow:26, green:39 };
-// Path index after which a piece diverts into its home column
-const HOME_COL_ENTRY = { red:51, blue:12, yellow:25, green:38 };
-// Home slots (starting circles) — each color sits in its own corner
-// Matches board CSS: bc-rh=top-left, bc-bh=top-right,
-//                   bc-yh=bottom-right, bc-gh=bottom-left
+// Path index where each color's pieces enter the main track
+const ENTRY_POS      = { green:0, red:13, blue:26, yellow:39 };
+// Path index at which a piece diverts into its home-column runway
+const HOME_COL_ENTRY = { green:51, red:12, blue:25, yellow:38 };
+// Starting home slots — each color in its own board corner
 const HOME_SLOTS = {
-  red:    [[1,1],[1,4],[4,1],[4,4]],           // top-left     (bc-rh)
-  blue:   [[1,10],[1,13],[4,10],[4,13]],        // top-right    (bc-bh)
-  yellow: [[10,10],[10,13],[13,10],[13,13]],    // bottom-right (bc-yh)
-  green:  [[10,1],[10,4],[13,1],[13,4]]         // bottom-left  (bc-gh)
+  green:  [[1,1],[1,4],[4,1],[4,4]],            // top-left     (bc-rh area)
+  red:    [[1,10],[1,13],[4,10],[4,13]],         // top-right    (bc-bh area)
+  blue:   [[10,10],[10,13],[13,10],[13,13]],     // bottom-right (bc-yh area)
+  yellow: [[10,1],[10,4],[13,1],[13,4]]          // bottom-left  (bc-gh area)
 };
 
 const COLORS     = ['red','blue','green','yellow'];
@@ -51,13 +59,16 @@ const GAME_SOCKET = typeof io !== 'undefined' ? io(LUDO_API_URL, { transports: [
 function getColorOrderForPlayerCount(playerCount, roomId) {
   const safeCount = Math.min(Math.max(Number(playerCount) || 2, 2), 4);
   if (safeCount === 2) {
+    // Two diagonal pairs that sit in opposite corners:
+    //   green(TL) + blue(BR)   — even room numbers
+    //   yellow(BL) + red(TR)   — odd  room numbers
     const roomNumber = Number(String(roomId || '').split('-').pop());
     return Number.isInteger(roomNumber) && roomNumber % 2 === 0
       ? ['green', 'blue']
-      : ['red', 'yellow'];
+      : ['yellow', 'red'];
   }
-  if (safeCount === 3) return ['yellow', 'red', 'green'];
-  return ['yellow', 'blue', 'green', 'red'];
+  if (safeCount === 3) return ['green', 'red', 'yellow'];
+  return ['green', 'red', 'blue', 'yellow'];
 }
 
 // ── Load state from sessionStorage ───────────────────────────
@@ -79,14 +90,16 @@ const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.fi
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 
 // Color rosters — ONLY the colors that are actually playing
-// 2 players: red + yellow  (opposite corners)
-// 3 players: yellow + red + green
-// 4 players: yellow + blue + green + red
+// Board layout:  green(TL)  red(TR)
+//                yellow(BL) blue(BR)
+// 2 players: green+blue  (TL↔BR diagonal) or yellow+red (BL↔TR diagonal)
+// 3 players: green + red + yellow
+// 4 players: green + red + blue + yellow
 const ACTIVE_COLORS = playerCount === 2
   ? getColorOrderForPlayerCount(playerCount, roomId)
   : playerCount === 3
-    ? ['yellow', 'red', 'green']
-    : ['yellow', 'blue', 'green', 'red'];
+    ? ['green', 'red', 'yellow']
+    : ['green', 'red', 'blue', 'yellow'];
 
 const localPlayerIndex = lobbyPlayers.findIndex(lobbyPlayer => String(lobbyPlayer.name) === String(player.name));
 const lobbyColorMap = {};
