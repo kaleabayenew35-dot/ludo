@@ -525,22 +525,21 @@ function applyRemoteAction(action) {
 function applyRemoteGameState(remoteState) {
   if (!remoteState || !G.started) return;
 
-  // Ignore stale snapshots so an older turn/roll state cannot overwrite the
-  // newest current game state after a local move or a remote action.
-  if (remoteState.updatedAt && G.updatedAt && remoteState.updatedAt < G.updatedAt) {
-    return;
-  }
-
-  // Snapshot previous dice value so we can detect a new roll
+  // ── Turn is authoritative from the server — never gate on timestamps ────
+  // The server merges all clients' states; whatever turn/rolled/diceValue it
+  // sends back is the single source of truth. Dropping based on timestamps
+  // causes the two clients to disagree on whose turn it is.
   const prevDiceValue = G.diceValue;
   const prevRolled    = G.rolled;
 
-  // ── Merge core turn/rolled/dice fields ──────────────────────
-  if (typeof remoteState.turn       === 'number')  G.turn       = remoteState.turn;
-  if (typeof remoteState.rolled     === 'boolean') G.rolled     = remoteState.rolled;
-  if (typeof remoteState.diceValue  === 'number')  G.diceValue  = remoteState.diceValue;
+  if (typeof remoteState.turn      === 'number')  G.turn      = remoteState.turn;
+  if (typeof remoteState.rolled    === 'boolean') G.rolled    = remoteState.rolled;
+  if (typeof remoteState.diceValue === 'number')  G.diceValue = remoteState.diceValue;
   if (typeof remoteState.winnerColor !== 'undefined') G.winnerColor = remoteState.winnerColor;
-  if (remoteState.updatedAt) G.updatedAt = remoteState.updatedAt;
+  // Only advance our local clock forward, never backward
+  if (remoteState.updatedAt && remoteState.updatedAt > (G.updatedAt || 0)) {
+    G.updatedAt = remoteState.updatedAt;
+  }
 
   // ── Merge piece positions — only ACTIVE_COLORS ──────────────
   if (remoteState.pieces) {
@@ -567,11 +566,7 @@ function applyRemoteGameState(remoteState) {
     });
   }
 
-  // ── Detect a remote dice roll not yet covered by game:action ─
-  // Only animate if the roll event arrives here before game:action
-  // (race condition safety net — won't double-animate because
-  //  applyRemoteAction returns early if source===localColor, and
-  //  this path only fires for non-local source rolls)
+  // ── Detect a remote dice roll not yet animated by applyRemoteAction ─
   const rollingColor = ACTIVE_COLORS[remoteState.turn % ACTIVE_COLORS.length];
   const isRemoteRoll = rollingColor !== localColor;
   const diceChanged  = remoteState.diceValue !== prevDiceValue || (!prevRolled && remoteState.rolled);
@@ -584,7 +579,7 @@ function applyRemoteGameState(remoteState) {
     addLog(`${colorLabel} rolled a ${remoteState.diceValue}`, 'roll');
   }
 
-  // ── Refresh board & UI ───────────────────────────────────────
+  // ── Refresh board & UI with the now-authoritative turn ───────
   renderPieces();
   updateGameUI();
   renderGamePlayers();
@@ -604,14 +599,14 @@ function connectGameSocket() {
   GAME_SOCKET.on('game:state', (remoteState) => {
     if (!remoteState || remoteState.roomId !== roomId) return;
 
-    // Drop stale snapshots and local echoes so the newest turn state wins.
-    const isRollEvent = remoteState.source === 'roll' || remoteState.source === 'bonus';
-    const isStaleEcho = remoteState.source === 'local'
+    // Only drop a message if it is our own echo AND it is not a roll event.
+    // Never drop based on timestamp — the server is the turn authority.
+    const isOwnEcho  = remoteState.source === 'local'
       && remoteState.updatedAt
-      && remoteState.updatedAt <= (G.updatedAt || 0);
-    const isOlderSnapshot = remoteState.updatedAt && G.updatedAt && remoteState.updatedAt < G.updatedAt;
+      && remoteState.updatedAt === G.updatedAt;
+    const isRollEvent = remoteState.source === 'roll' || remoteState.source === 'bonus';
 
-    if ((isStaleEcho && !isRollEvent) || isOlderSnapshot) return;
+    if (isOwnEcho && !isRollEvent) return;
 
     applyRemoteGameState(remoteState);
   });
@@ -620,8 +615,7 @@ function connectGameSocket() {
     if (!payload || payload.roomId !== roomId) return;
     const action = payload.action;
     if (!action) return;
-
-    // Ignore sender echo but still animate on every other client in the room.
+    // Ignore our own echo
     if (action.socketId === GAME_SOCKET.id) return;
     applyRemoteAction(action);
   });
