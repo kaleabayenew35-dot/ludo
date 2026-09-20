@@ -406,16 +406,8 @@ function updateGameUI() {
   });
 }
 
-function addLog(text, type='') {
-  const entry = document.createElement('div');
-  entry.className = `log-entry ${type}`;
-  entry.textContent = text;
-  const log = $('gameLog');
-  if (log) {
-    log.prepend(entry);
-    if (log.children.length > 50) log.lastElementChild.remove();
-  }
-}
+// Game log removed from UI — addLog is a no-op kept so call sites compile
+function addLog(_text, _type) {}
 
 // ── Reset / Start ─────────────────────────────────────────────
 function resetGame() {
@@ -431,7 +423,6 @@ function resetGame() {
   buildBoard();
   renderPieces();
   updateGameUI();
-  const gameLog=$('gameLog'); if (gameLog) gameLog.innerHTML='<div class="log-entry">Game ready — press Start.</div>';
   const startBtn=$('startGameBtn'); if (startBtn) startBtn.disabled=false;
   const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=true;
   stopTurnTimer(); updateTimerDisplay();
