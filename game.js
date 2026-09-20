@@ -635,8 +635,9 @@ function startGame() {
   resetTurnTimer();
   startPresenceWatch();
   broadcastGameState('start');
-  // Auto-roll if first turn is AI
-  if (ACTIVE_COLORS[0] !== localColor) {
+  // Auto-roll only for AI / solo play. Multiplayer rooms must wait for the
+  // actual player turn to roll, and remote turns should never trigger a local roll.
+  if (ACTIVE_COLORS[0] !== localColor && !roomId) {
     setTimeout(() => rollDice(true), 1000);
   }
 }
@@ -987,9 +988,10 @@ function nextTurn(forceColor) {
     return;
   }
 
-  // Auto-roll for AI turns
+  // Auto-roll only for AI / solo play. Multiplayer rooms sync turns from the
+  // real socket state and should never auto-roll on another player's turn.
   const col = currentColor();
-  if (G.started && col !== localColor) {
+  if (G.started && col !== localColor && !roomId) {
     setTimeout(() => rollDice(true), 900);
   }
 }
