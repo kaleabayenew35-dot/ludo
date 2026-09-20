@@ -1800,11 +1800,14 @@ function updateRoomCount(rooms) {
 
 function redirectFromIndex(room) {
   const auth      = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+  const playerIndex = room.players.findIndex(player => player.name === S.player.name);
+  const colorRoster = room.players.length === 2 ? ['red', 'yellow'] : room.players.length === 3 ? ['red', 'yellow', 'green'] : ['red', 'blue', 'green', 'yellow'];
   const gameState = {
     name: S.player.name, balance: S.player.balance, wins: S.player.wins||0,
     losses: S.player.losses||0, totalWon: S.player.totalWon||0, totalLost: S.player.totalLost||0,
     selectedAmount: room.betAmount,
     roomId: room.id,
+    playerColor: colorRoster[Math.max(0, playerIndex)],
     opponent: (room.players.find(p => p.name !== S.player.name) || { name: 'Opponent' }),
     autoStart: true, lobbyPlayers: room.players,
   };

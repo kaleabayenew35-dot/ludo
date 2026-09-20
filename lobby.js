@@ -217,6 +217,8 @@ function connectSocket() {
 
 function redirectToGame(betAmount, players) {
   var auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+  var playerIndex = players.findIndex(function(player){ return player.name === state.player.name; });
+  var colorRoster = players.length === 2 ? ['red', 'yellow'] : players.length === 3 ? ['red', 'yellow', 'green'] : ['red', 'blue', 'green', 'yellow'];
   var gameState = {
     name          : state.player.name,
     balance       : state.player.balance,
@@ -226,6 +228,7 @@ function redirectToGame(betAmount, players) {
     totalLost     : 0,
     selectedAmount: betAmount,
     roomId        : state.currentRoomId,
+    playerColor   : colorRoster[Math.max(0, playerIndex)],
     opponent      : players.filter(function(p){ return p.name !== state.player.name; })[0] || { name: 'Opponent' },
     autoStart     : true,
     lobbyPlayers  : players,

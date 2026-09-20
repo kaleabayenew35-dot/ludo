@@ -54,6 +54,7 @@ const selectedAmount = saved.selectedAmount || 10;
 const opponent       = saved.opponent       || { name: 'AI' };
 const autoStart      = saved.autoStart      || false;
 const roomId          = saved.roomId || null;
+const localColor      = saved.playerColor || 'red';
 const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 const ACTIVE_COLORS   = playerCount === 2
@@ -162,9 +163,9 @@ function resetTurnTimer() {
   secondsLeft = 60;
   updateTimerDisplay();
   if (!G.started) return;
-  if (currentColor() !== 'red') {
+  if (currentColor() !== localColor) {
     setTimeout(() => {
-      if (G.started && !G.rolled && currentColor() !== 'red') rollDice(true);
+      if (G.started && !G.rolled && currentColor() !== localColor) rollDice(true);
     }, 700);
   }
   turnTimer = setInterval(() => {
@@ -288,7 +289,7 @@ function renderGamePlayers() {
   if (!container) return;
   container.innerHTML = '';
   const names = ACTIVE_COLORS.map((color, index) => {
-    if (index === 0) return 'You (Red)';
+    if (color === localColor) return `You (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
     if (index === 1) return `${opponent.name || 'AI'} (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
     return `AI ${color.charAt(0).toUpperCase()}${color.slice(1)}`;
   });
@@ -308,8 +309,8 @@ function currentColor() { return ACTIVE_COLORS[G.turn % ACTIVE_COLORS.length]; }
 function updateGameUI() {
   const col=currentColor();
   const dot=$('turnDot'); if (dot) dot.className=`turn-dot ${col}`;
-  const txt=$('turnText'); if (txt) txt.textContent=(col==='red'?'Your':col.charAt(0).toUpperCase()+col.slice(1))+"'s Turn";
-    const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled || col !== 'red';
+  const txt=$('turnText'); if (txt) txt.textContent=(col===localColor?'Your':col.charAt(0).toUpperCase()+col.slice(1))+"'s Turn";
+  const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled || col !== localColor;
   // Update player rows with eliminated styling
   ACTIVE_COLORS.forEach((c,i)=>{
     const row=$(`gpr-${c}`);
@@ -454,7 +455,7 @@ function animateDice(value, onDone) {
 
 function rollDice(computerTurn = false) {
   const col   = currentColor();
-  if (!G.started || G.rolled || (!computerTurn && col !== 'red')) return;
+  if (!G.started || G.rolled || (!computerTurn && col !== localColor)) return;
   const value = Math.floor(Math.random()*6)+1;
   G.diceValue=value; G.rolled=true;
   const rollBtn = $('rollDiceBtn'); if(rollBtn) rollBtn.disabled=true;
