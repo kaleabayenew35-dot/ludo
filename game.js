@@ -68,10 +68,18 @@ const ACTIVE_COLORS = playerCount === 2
     : ['yellow', 'blue', 'green', 'red'];
 
 const localPlayerIndex = lobbyPlayers.findIndex(lobbyPlayer => String(lobbyPlayer.name) === String(player.name));
-// Use saved playerColor if available, otherwise derive from lobby slot
+const lobbyColorMap = {};
+ACTIVE_COLORS.forEach((color, idx) => {
+  const lobbyEntry = lobbyPlayers[idx];
+  if (lobbyEntry && lobbyEntry.color && ACTIVE_COLORS.includes(lobbyEntry.color)) {
+    lobbyColorMap[color] = lobbyEntry.color;
+  }
+});
 const localColor = saved.playerColor && ACTIVE_COLORS.includes(saved.playerColor)
   ? saved.playerColor
-  : ACTIVE_COLORS[Math.max(0, localPlayerIndex)];
+  : (lobbyPlayers[localPlayerIndex] && lobbyPlayers[localPlayerIndex].color && ACTIVE_COLORS.includes(lobbyPlayers[localPlayerIndex].color)
+      ? lobbyPlayers[localPlayerIndex].color
+      : ACTIVE_COLORS[Math.max(0, localPlayerIndex)]);
 
 // ── Game state ────────────────────────────────────────────────
 // ── Game state ────────────────────────────────────────────────
