@@ -57,9 +57,9 @@ const roomId          = saved.roomId || null;
 const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 const ACTIVE_COLORS   = playerCount === 2
-  ? ['yellow', 'blue']
+  ? ['red', 'yellow']
   : playerCount === 3
-    ? ['yellow', 'blue', 'green']
+    ? ['yellow', 'red', 'green']
     : ['yellow', 'blue', 'green', 'red'];
 const localPlayerIndex = lobbyPlayers.findIndex(lobbyPlayer => String(lobbyPlayer.name) === String(player.name));
 const localColor = saved.playerColor || ACTIVE_COLORS[Math.max(0, localPlayerIndex)];
@@ -282,7 +282,10 @@ function renderGamePlayers() {
   container.innerHTML = '';
   const names = ACTIVE_COLORS.map((color, index) => {
     if (color === localColor) return `You (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
-    if (index === 1) return `${opponent.name || 'AI'} (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
+    // Find the matching lobby player for this slot
+    const lobbyIdx = index; // slot index maps to lobbyPlayers index
+    const lp = lobbyPlayers[lobbyIdx];
+    if (lp && lp.name && lp.name !== player.name) return `${lp.name} (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
     return `AI ${color.charAt(0).toUpperCase()}${color.slice(1)}`;
   });
   ACTIVE_COLORS.forEach((col,i) => {
@@ -302,7 +305,7 @@ function updateGameUI() {
   const col=currentColor();
   const dot=$('turnDot'); if (dot) dot.className=`turn-dot ${col}`;
   const txt=$('turnText'); if (txt) txt.textContent=(col===localColor?'Your':col.charAt(0).toUpperCase()+col.slice(1))+"'s Turn";
-  const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled || col !== localColor;
+  const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled || col !== localColor || G.eliminated[localColor];
   // Update player rows with eliminated styling
   ACTIVE_COLORS.forEach((c,i)=>{
     const row=$(`gpr-${c}`);
@@ -348,7 +351,7 @@ function startGame() {
   resetGame();
   G.active=true; G.started=true;
   const startBtn = $('startGameBtn'); if (startBtn) startBtn.disabled=true;
-  const rollBtn  = $('rollDiceBtn');  if (rollBtn)  rollBtn.disabled=false;
+  const rollBtn  = $('rollDiceBtn');  if (rollBtn)  rollBtn.disabled=(ACTIVE_COLORS[0] !== localColor);
   renderGamePlayers();
   updateGameUI();
   addLog(`Game started! ${localColor.charAt(0).toUpperCase()+localColor.slice(1)} is your color. 🎲`,'roll');
@@ -356,6 +359,10 @@ function startGame() {
   const idEl   = $('gameHeaderId'); if (idEl) idEl.textContent='#'+gameId;
   resetTurnTimer();
   startPresenceWatch();
+  // Auto-roll if first turn is AI
+  if (ACTIVE_COLORS[0] !== localColor) {
+    setTimeout(() => rollDice(true), 1000);
+  }
 }
 
 // ── Button listeners ──────────────────────────────────────────
@@ -685,14 +692,19 @@ function nextTurn(forceColor) {
   }
   updateGameUI();
   resetTurnTimer();
- function autoDeclareWhenOneLeft() {
+
+  // Auto-declare winner if only one player left
   const alive = ACTIVE_COLORS.filter(c => !G.eliminated[c]);
-  if (alive.length===1 && G.started) {
-    // automatic win for the last remaining player
-    const winner = alive[0];
-    declareWinner(winner);
+  if (alive.length === 1 && G.started) {
+    declareWinner(alive[0]);
+    return;
   }
-};
+
+  // Auto-roll for AI turns
+  const col = currentColor();
+  if (G.started && col !== localColor) {
+    setTimeout(() => rollDice(true), 900);
+  }
 }
 
 function checkWin(color) {
@@ -739,7 +751,7 @@ function declareWinner(winnerColor) {
 }
 
 function endGame(playerWon, winnerColor) {
-  G.winnerColor = playerWon ? 'red' : winnerColor;
+  G.winnerColor = playerWon ? localColor : winnerColor;
   if (!playerWon) {
     G.eliminated[localColor] = true;
     removePlayerPieces(localColor);
@@ -749,10 +761,11 @@ function endGame(playerWon, winnerColor) {
   // Persist result to backend (players balances & game log)
   async function persistResult() {
     const bet = selectedAmount;
-    for (const col of COLORS) {
-      const delta = (col === winnerColor) ? bet * 2 : -bet;
+    const actualWinner = G.winnerColor;
+    for (const col of ACTIVE_COLORS) {
+      const delta = (col === actualWinner) ? bet * (ACTIVE_COLORS.length - 1) : -bet;
       try {
-        await fetch(`/api/player/${col}/bet`, {
+        await fetch(`${LUDO_API_URL}/api/player/${col}/bet`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ delta })
@@ -762,10 +775,10 @@ function endGame(playerWon, winnerColor) {
       }
     }
     try {
-      await fetch('/api/game/end', {
+      await fetch(`${LUDO_API_URL}/api/game/end`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ winnerColor, bet, log: G.log })
+        body: JSON.stringify({ winnerColor: actualWinner, bet, log: G.log })
       });
     } catch (e) {
       console.error('Failed to record game', e);
@@ -780,8 +793,8 @@ function endGame(playerWon, winnerColor) {
 
   const bet = selectedAmount;
   if (playerWon) {
-    const gain = bet * 2; player.balance += gain; player.wins++; player.totalWon += gain;
-    $('winMsg').textContent = `You earned ${formatMoney(gain)}!`;
+    const gain = bet * (ACTIVE_COLORS.length - 1); player.balance += gain; player.wins++; player.totalWon += gain;
+    $('winMsg').textContent = `You earned ${gain} ETB!`;
     $('winAmount').textContent = `+${gain} ETB`;
     showOverlay('winModal');
     spawnConfetti();
