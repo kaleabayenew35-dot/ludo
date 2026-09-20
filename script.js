@@ -46,7 +46,7 @@ const HOME_COLS = {
 const ENTRY_POS = { green: 0, red: 13, blue: 26, yellow: 39 };
 
 // Where each color enters its home column (path index AFTER this triggers home col entry)
-const HOME_COL_ENTRY = { green: 51, red: 12, blue: 25, yellow: 38 };
+const HOME_COL_ENTRY = { green: 50, red: 11, blue: 24, yellow: 37 };
 
 // Home piece slots (where pieces sit when not yet entered)
 const HOME_SLOTS = {

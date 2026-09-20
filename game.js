@@ -42,7 +42,7 @@ const HOME_COLS = {
 // Path index where each color's pieces enter the main track
 const ENTRY_POS      = { green:0, red:13, blue:26, yellow:39 };
 // Path index at which a piece diverts into its home-column runway
-const HOME_COL_ENTRY = { green:51, red:12, blue:25, yellow:38 };
+const HOME_COL_ENTRY = { green:50, red:11, blue:24, yellow:37 };
 // Starting home slots — each color in its own board corner
 const HOME_SLOTS = {
   green:  [[1,1],[1,4],[4,1],[4,4]],            // top-left     (bc-gh area)
