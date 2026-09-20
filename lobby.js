@@ -292,7 +292,6 @@ function showSkeletons(bet) {
     card.setAttribute('data-skeleton', i);
     card.innerHTML =
       '<div class="room-card-top">' +
-        '<span class="room-card-id" style="opacity:.35">ROOM #' + (bet || '?') + '-' + i + '</span>' +
         '<span class="room-card-count" style="opacity:.35"><strong>0</strong> / 4 players</span>' +
         '<span class="room-status-badge status-waiting">🟢 Empty</span>' +
       '</div>' +
@@ -366,15 +365,12 @@ function buildRoomCard(room) {
 
   // Top row
   var topRow = mk('div', 'room-card-top');
-  var idSpan = mk('span', 'room-card-id');
-  idSpan.textContent = 'ROOM #' + room.id;
   var cntSpan = mk('span', 'room-card-count');
   cntSpan.innerHTML = '<strong>' + count + '</strong> / 4 players';
   var badge = mk('span', 'room-status-badge status-' + room.status);
   badge.textContent = started ? '🎮 In Game' :
     room.status === 'countdown' ? '⏳ Starting…' :
     count === 0 ? '🟢 Empty' : '👥 Open';
-  topRow.appendChild(idSpan);
   topRow.appendChild(cntSpan);
   topRow.appendChild(badge);
   card.appendChild(topRow);
