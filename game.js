@@ -243,14 +243,16 @@ function getCellClass(r, c) {
     if (r === 7 && c === 7) return 'bc bc-center-core';
     return 'bc bc-center';
   }
-  if (r <= 5 && c <= 5) return 'bc bc-rh';
-  if (r <= 5 && c >= 9) return 'bc bc-bh';
-  if (r >= 9 && c >= 9) return 'bc bc-yh';
-  if (r >= 9 && c <= 5) return 'bc bc-gh';
-  if (r === 7 && c >= 1 && c <= 5)  return 'bc bc-hc-r';
-  if (c === 7 && r >= 1 && r <= 5)  return 'bc bc-hc-b';
-  if (r === 7 && c >= 9 && c <= 13) return 'bc bc-hc-y';
-  if (c === 7 && r >= 9 && r <= 13) return 'bc bc-hc-g';
+  // Corner quadrants — each shows its actual playing color background
+  if (r <= 5 && c <= 5) return 'bc bc-gh';       // top-left    = GREEN
+  if (r <= 5 && c >= 9) return 'bc bc-rh';       // top-right   = RED
+  if (r >= 9 && c >= 9) return 'bc bc-bh';       // bottom-right= BLUE
+  if (r >= 9 && c <= 5) return 'bc bc-yh';       // bottom-left = YELLOW
+  // Home-column runways — colored to match the owner's color
+  if (r === 7 && c >= 1 && c <= 5)  return 'bc bc-hc-g'; // left  arm → GREEN
+  if (c === 7 && r >= 1 && r <= 5)  return 'bc bc-hc-r'; // top   arm → RED
+  if (r === 7 && c >= 9 && c <= 13) return 'bc bc-hc-b'; // right arm → BLUE
+  if (c === 7 && r >= 9 && r <= 13) return 'bc bc-hc-y'; // bottom arm→ YELLOW
   const idx = MAIN_PATH.findIndex(([pr,pc]) => pr === r && pc === c);
   if (idx >= 0) return SAFE_POSITIONS.has(idx) ? 'bc bc-safe' : 'bc bc-path';
   return 'bc bc-path';
@@ -263,8 +265,10 @@ function buildBoard() {
     for (let c = 0; c < 15; c++) {
       const div = make('div', getCellClass(r,c));
       div.id = cellId(r,c);
-      const allSlots   = [...HOME_SLOTS.red,...HOME_SLOTS.blue,...HOME_SLOTS.yellow,...HOME_SLOTS.green];
-      const slotColors = [...HOME_SLOTS.red.map(()=>'r'),...HOME_SLOTS.blue.map(()=>'b'),...HOME_SLOTS.yellow.map(()=>'y'),...HOME_SLOTS.green.map(()=>'g')];
+      // Slot circles — must match the new HOME_SLOTS color layout:
+      // green=TL, red=TR, blue=BR, yellow=BL
+      const allSlots   = [...HOME_SLOTS.green,...HOME_SLOTS.red,...HOME_SLOTS.blue,...HOME_SLOTS.yellow];
+      const slotColors = [...HOME_SLOTS.green.map(()=>'g'),...HOME_SLOTS.red.map(()=>'r'),...HOME_SLOTS.blue.map(()=>'b'),...HOME_SLOTS.yellow.map(()=>'y')];
       const si = allSlots.findIndex(([sr,sc]) => sr===r && sc===c);
       if (si >= 0) div.classList.add('bc-hcircle', slotColors[si]);
       board.appendChild(div);
