@@ -383,8 +383,10 @@ function updateGameUI() {
   const dot = $('turnDot'); if (dot) dot.className = `turn-dot ${col}`;
   const txt = $('turnText');
   if (txt) {
-    const label = col === localColor ? 'Your' : col.charAt(0).toUpperCase() + col.slice(1);
-    txt.textContent = `${label}'s Turn`;
+    const displayColor = typeof col === 'string' && col ? col : ACTIVE_COLORS[0];
+    const isLocalTurn = !!localColor && displayColor === localColor;
+    const turnLabel = isLocalTurn ? 'Your Turn' : `${displayColor.charAt(0).toUpperCase() + displayColor.slice(1)}'s Turn`;
+    txt.textContent = turnLabel;
   }
   const rollBtn = $('rollDiceBtn');
   if (rollBtn) rollBtn.disabled = !G.started || G.rolled || col !== localColor || G.eliminated[localColor];
