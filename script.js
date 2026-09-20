@@ -88,6 +88,12 @@ const COLOR_EMOJIS = { red:'🔴', blue:'🔵', green:'🟢', yellow:'🟡' };
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 const SYSTEM_BACKEND_URL = (window.__SYSTEM_BACKEND_URL__ || 'https://system-backend-1u5m.onrender.com').replace(/\/$/, '');
+const getColorOrderForPlayerCount = (playerCount = 2) => {
+  const safeCount = Math.min(Math.max(Number(playerCount) || 2, 2), 4);
+  if (safeCount === 2) return ['red', 'yellow'];
+  if (safeCount === 3) return ['yellow', 'red', 'green'];
+  return ['yellow', 'blue', 'green', 'red'];
+};
 let aiEnabled = false;
 
 async function loadAiConfig() {
@@ -763,14 +769,21 @@ if (_forfeitBtn) {
   });
 }
 
-function currentColor() { return COLORS[S.game.turn % 4]; }
+function currentColor() {
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
+  return activeColors[S.game.turn % activeColors.length];
+}
 
 function renderGamePlayers() {
   const container = $('gamePlayers');
   container.innerHTML = '';
-  const playerNames = ['You (Red)','AI Blue','AI Green','AI Yellow'];
-  COLORS.forEach((col, i) => {
-    const row = make('div', 'game-player-row' + (i === S.game.turn ? ' active-player' : ''));
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
+  const playerNames = activeColors.map((col, i) => {
+    if (i === 0) return 'You (' + col.charAt(0).toUpperCase() + col.slice(1) + ')';
+    return 'AI ' + col.charAt(0).toUpperCase() + col.slice(1);
+  });
+  activeColors.forEach((col, i) => {
+    const row = make('div', 'game-player-row' + (i === S.game.turn % activeColors.length ? ' active-player' : ''));
     row.id = `gpr-${col}`;
     row.innerHTML = `<div class="color-dot ${col}"></div><span>${playerNames[i]}</span>
       <span style="margin-left:auto;font-size:11px;color:var(--text-3)">${S.game.finished[col]}/4 home</span>`;
@@ -779,17 +792,18 @@ function renderGamePlayers() {
 }
 
 function updateGameUI() {
+  const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
   const col = currentColor();
   const dot = $('turnDot'); if (dot) dot.className = `turn-dot ${col}`;
   const txt = $('turnText'); if (txt) txt.textContent = (col === 'red' ? 'Your' : col.charAt(0).toUpperCase()+col.slice(1)) + "'s Turn";
   const rollBtn = $('rollDiceBtn'); if (rollBtn) rollBtn.disabled = !S.game.started || S.game.rolled;
 
-  COLORS.forEach((c, i) => {
+  activeColors.forEach((c, i) => {
     const row = $(`gpr-${c}`);
-    if (row) row.className = 'game-player-row' + (i === S.game.turn % 4 ? ' active-player' : '');
+    if (row) row.className = 'game-player-row' + (i === S.game.turn % activeColors.length ? ' active-player' : '');
   });
 
-  COLORS.forEach(c => {
+  activeColors.forEach(c => {
     const row = $(`gpr-${c}`);
     if (row) {
       const span = row.querySelector('span:last-child');

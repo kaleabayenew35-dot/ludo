@@ -40,6 +40,13 @@ const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
 const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 const GAME_SOCKET = typeof io !== 'undefined' ? io(LUDO_API_URL, { transports: ['websocket', 'polling'] }) : null;
 
+function getColorOrderForPlayerCount(playerCount) {
+  const safeCount = Math.min(Math.max(Number(playerCount) || 2, 2), 4);
+  if (safeCount === 2) return ['red', 'yellow'];
+  if (safeCount === 3) return ['yellow', 'red', 'green'];
+  return ['yellow', 'blue', 'green', 'red'];
+}
+
 // ── Load state from sessionStorage ───────────────────────────
 const saved = JSON.parse(sessionStorage.getItem('ludoGameState') || '{}');
 const player = {
@@ -399,6 +406,9 @@ function applyRemoteGameState(remoteState) {
   if (Array.isArray(remoteState.players) && remoteState.players.length) {
     lobbyPlayers.length = 0;
     remoteState.players.forEach((entry) => lobbyPlayers.push(entry));
+    refreshActiveColors(remoteState.players.length);
+  } else {
+    refreshActiveColors(lobbyPlayers.length || playerCount || 2);
   }
   renderGamePlayers();
   buildBoard();
