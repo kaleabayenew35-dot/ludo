@@ -405,21 +405,84 @@ function broadcastGameState(source = 'local') {
   });
 }
 
+/**
+ * Apply a game state update that arrived from a remote player via socket.
+ *
+ * Key behaviour:
+ * - Only fields that belong to ACTIVE_COLORS are merged (safe against stale
+ *   4-color states arriving from earlier sessions).
+ * - If the remote state carries a new dice roll (source === 'roll' or
+ *   source === 'bonus' while rolled === true) AND the dice value changed,
+ *   the dice animation is shown on this client so the opponent can see the
+ *   roll visually in real time.
+ * - The #diceValueLabel is updated by animateDice itself — no extra work needed.
+ */
 function applyRemoteGameState(remoteState) {
-  if (!remoteState || !remoteState.roomId) return;
-  Object.assign(G, remoteState);
-  if (Array.isArray(remoteState.players) && remoteState.players.length) {
-    lobbyPlayers.length = 0;
-    remoteState.players.forEach((entry) => lobbyPlayers.push(entry));
-    refreshActiveColors(remoteState.players.length);
-  } else {
-    refreshActiveColors(lobbyPlayers.length || playerCount || 2);
+  if (!remoteState || !G.started) return;
+
+  // Snapshot previous dice value so we can detect a new roll
+  const prevDiceValue = G.diceValue;
+  const prevRolled    = G.rolled;
+
+  // ── Merge core turn/rolled/dice fields ──────────────────────
+  if (typeof remoteState.turn       === 'number') G.turn       = remoteState.turn;
+  if (typeof remoteState.rolled     === 'boolean') G.rolled    = remoteState.rolled;
+  if (typeof remoteState.diceValue  === 'number') G.diceValue  = remoteState.diceValue;
+  if (typeof remoteState.winnerColor !== 'undefined') G.winnerColor = remoteState.winnerColor;
+  if (remoteState.updatedAt) G.updatedAt = remoteState.updatedAt;
+
+  // ── Merge piece positions — only ACTIVE_COLORS ──────────────
+  if (remoteState.pieces) {
+    ACTIVE_COLORS.forEach(color => {
+      if (Array.isArray(remoteState.pieces[color])) {
+        G.pieces[color] = [...remoteState.pieces[color]];
+      }
+    });
   }
-  renderGamePlayers();
-  buildBoard();
+
+  // ── Merge finished / eliminated counts ──────────────────────
+  if (remoteState.finished) {
+    ACTIVE_COLORS.forEach(color => {
+      if (typeof remoteState.finished[color] === 'number') {
+        G.finished[color] = remoteState.finished[color];
+      }
+    });
+  }
+  if (remoteState.eliminated) {
+    ACTIVE_COLORS.forEach(color => {
+      if (typeof remoteState.eliminated[color] === 'boolean') {
+        G.eliminated[color] = remoteState.eliminated[color];
+      }
+    });
+  }
+
+  // ── Detect a remote dice roll and animate it ─────────────────
+  // Conditions:
+  //   1. The source is 'roll' or 'bonus' (explicit roll broadcast), OR
+  //      the rolled flag just became true while dice value changed.
+  //   2. The rolling color is NOT the local player (would be their own roll).
+  //   3. The dice value is valid (1-6).
+  const rollingColor  = ACTIVE_COLORS[remoteState.turn % ACTIVE_COLORS.length];
+  const isRemoteRoll  = rollingColor !== localColor;
+  const diceChanged   = remoteState.diceValue !== prevDiceValue || (!prevRolled && remoteState.rolled);
+  const isRollEvent   = remoteState.source === 'roll' || remoteState.source === 'bonus';
+  const validDice     = remoteState.diceValue >= 1 && remoteState.diceValue <= 6;
+
+  if (isRemoteRoll && diceChanged && isRollEvent && validDice) {
+    // Show the dice animation so this player sees the opponent's roll
+    animateDice(remoteState.diceValue, null);
+    // Log entry mirrors what the local rollDice() produces
+    const colorLabel = rollingColor.charAt(0).toUpperCase() + rollingColor.slice(1);
+    addLog(`${colorLabel} rolled a ${remoteState.diceValue}`, 'roll');
+  }
+
+  // ── Refresh board & UI ───────────────────────────────────────
   renderPieces();
   updateGameUI();
+  renderGamePlayers();
 }
+
+
 
 function connectGameSocket() {
   if (!roomId || !GAME_SOCKET) return;
@@ -429,10 +492,19 @@ function connectGameSocket() {
       player: { name: player.name, color: localColor },
     });
   });
-  GAME_SOCKET.on('game:state', (state) => {
-    if (!state || state.roomId !== roomId) return;
-    if (state.source === 'local' && state.updatedAt && state.updatedAt <= (G.updatedAt || 0)) return;
-    applyRemoteGameState(state);
+  GAME_SOCKET.on('game:state', (remoteState) => {
+    if (!remoteState || remoteState.roomId !== roomId) return;
+
+    // Drop stale local-echo updates but always process remote roll events so
+    // the opponent's dice animation is never skipped.
+    const isRollEvent = remoteState.source === 'roll' || remoteState.source === 'bonus';
+    const isStaleEcho = remoteState.source === 'local'
+      && remoteState.updatedAt
+      && remoteState.updatedAt <= (G.updatedAt || 0);
+
+    if (isStaleEcho && !isRollEvent) return;
+
+    applyRemoteGameState(remoteState);
   });
 }
 
