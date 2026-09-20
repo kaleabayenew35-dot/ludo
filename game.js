@@ -263,6 +263,8 @@ function piecePos(color, idx) {
 }
 
 function renderPieces() {
+  // Guard: ensure ACTIVE_COLORS is defined and non‑empty before rendering pieces.
+  if (!Array.isArray(ACTIVE_COLORS) || ACTIVE_COLORS.length === 0) return;
   clearPieces();
 
   // Build a map: "r-c" => [{color, idx}, ...]
