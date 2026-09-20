@@ -180,6 +180,23 @@ function notifyRoomLeave() {
   }).catch(() => {});
 }
 
+// Notify the backend that the game has ended so the room resets to 'waiting'.
+// Called once by endGame() — fires both a socket event and an HTTP endpoint.
+function notifyGameEnd() {
+  if (!roomId) return;
+  // Socket is the fastest path — backend resets room immediately
+  if (GAME_SOCKET?.connected) {
+    GAME_SOCKET.emit('game:over', { roomId, winnerColor: G.winnerColor });
+  }
+  // HTTP fallback: also hits the REST reset endpoint (keepalive so it survives page unload)
+  fetch(`${LUDO_API_URL}/api/rooms/${encodeURIComponent(roomId)}/end`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ winnerColor: G.winnerColor }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 function eliminatePlayer(color) {
   if (!ACTIVE_COLORS.includes(color) || G.eliminated[color]) return;
   G.eliminated[color] = true;
@@ -407,6 +424,8 @@ function resetGame() {
   });
   G.winnerColor = null;
   G.log=[];
+  // Reset one-shot guards so a replay works correctly
+  endGame._called = false;
   buildBoard();
   renderPieces();
   updateGameUI();
@@ -905,14 +924,10 @@ function nextTurn(forceColor) {
 }
 
 function checkWin(color) {
-  if (G.finished[color]>=4) {
-    G.eliminated[color]=true;
-    addLog(`${color} finished all pieces!`, 'win');
-    // Auto win if only one player remains
-    const alive = ACTIVE_COLORS.filter(c => !G.eliminated[c]);
-    if (alive.length===1 && G.started) {
-      declareWinner(alive[0]);
-    }
+  if (G.finished[color] >= 4) {
+    addLog(`${color} finished all pieces! 🏆`, 'win');
+    // This color wins — declare immediately, do NOT mark them eliminated
+    if (G.started) declareWinner(color);
   }
 }
 
@@ -923,37 +938,37 @@ function removePlayerPieces(color) {
 
 // ── End game ──────────────────────────────────────────────────
 function declareWinner(winnerColor) {
-  // Mark all other players as eliminated
-  ACTIVE_COLORS.forEach(c => {
-    if (c!==winnerColor) G.eliminated[c]=true;
-  });
+  // Guard: only run once per game — prevents double modal from re-entry
+  if (G.winnerColor) return;
+
   G.winnerColor = winnerColor;
-  // Update UI rows
+  // Mark every other active player as eliminated
+  ACTIVE_COLORS.forEach(c => {
+    if (c !== winnerColor) G.eliminated[c] = true;
+  });
   updateGameUI();
-  // Populate loser list in win modal
-  const loserList=$('loserList');
-  if (loserList) {
-    loserList.innerHTML='';
-    ACTIVE_COLORS.filter(c=>c!==winnerColor).forEach(c=>{
-      const li=document.createElement('li'); li.textContent=c.charAt(0).toUpperCase()+c.slice(1);
-      loserList.appendChild(li);
-    });
-  }
-  // Show win modal for the winner (if winner is red, we already have logic elsewhere)
+
   if (winnerColor === localColor) {
-    endGame(true,null);
+    endGame(true, null);
   } else {
-    endGame(false,winnerColor);
+    endGame(false, winnerColor);
   }
 }
 
 function endGame(playerWon, winnerColor) {
-  G.winnerColor = playerWon ? localColor : winnerColor;
+  // Guard: only run once — prevents double modal if declareWinner fires twice
+  if (endGame._called) return;
+  endGame._called = true;
+
+  G.winnerColor = playerWon ? localColor : (G.winnerColor || winnerColor);
   if (!playerWon) {
     G.eliminated[localColor] = true;
     removePlayerPieces(localColor);
   }
   updateGameUI();
+
+  // Tell the backend: game is over — resets room to 'waiting'
+  notifyGameEnd();
 
   // Persist result to backend (players balances & game log)
   async function persistResult() {
@@ -998,8 +1013,8 @@ function endGame(playerWon, winnerColor) {
   } else {
     if (player.balance >= bet) { player.balance -= bet; }
     player.losses++; player.totalLost += bet;
-    const w = winnerColor ? winnerColor : 'AI';
-    $('loseMsg').textContent = `${w.charAt(0).toUpperCase()+w.slice(1)} wins. You lost ${formatMoney(bet)}.`;
+    const w = G.winnerColor || winnerColor || 'Opponent';
+    $('loseMsg').textContent = `${w.charAt(0).toUpperCase()+w.slice(1)} wins. You lost ${bet} ETB.`;
     $('loseAmount').textContent = `−${bet} ETB`;
     showOverlay('loseModal');
   }
