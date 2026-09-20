@@ -455,16 +455,76 @@ function broadcastGameState(source = 'local') {
 }
 
 /**
- * Apply a game state update that arrived from a remote player via socket.
+ * Broadcast a single discrete action (dice roll or piece move) to all
+ * other players in the room.  This is the fast path — the full state sync
+ * via broadcastGameState() still runs afterwards as a consistency catch-up.
  *
- * Key behaviour:
- * - Only fields that belong to ACTIVE_COLORS are merged (safe against stale
- *   4-color states arriving from earlier sessions).
- * - If the remote state carries a new dice roll (source === 'roll' or
- *   source === 'bonus' while rolled === true) AND the dice value changed,
- *   the dice animation is shown on this client so the opponent can see the
- *   roll visually in real time.
- * - The #diceValueLabel is updated by animateDice itself — no extra work needed.
+ * action shape:
+ *   { type: 'roll',  color, value }
+ *   { type: 'move',  color, idx, fromPos, steps, finalPos }
+ *   { type: 'capture', color, capturedColor, capturedIdx }
+ */
+function broadcastAction(action) {
+  if (!roomId || !GAME_SOCKET || !GAME_SOCKET.connected) return;
+  GAME_SOCKET.emit('game:action', {
+    roomId,
+    action: { ...action, ts: Date.now() },
+  });
+}
+
+/**
+ * Handle a discrete action broadcast by another player in real time.
+ * This is the fast path — dice rolls and piece moves are animated live.
+ * The full state sync via applyRemoteGameState() catches up any drift.
+ */
+function applyRemoteAction(action) {
+  if (!action || !G.started) return;
+
+  if (action.type === 'roll') {
+    // Only animate if this roll is from a different player
+    if (action.color === localColor) return;
+    const colorLabel = action.color.charAt(0).toUpperCase() + action.color.slice(1);
+    addLog(`${colorLabel} rolled a ${action.value}`, 'roll');
+    animateDice(action.value, null);
+    // Update state so UI shows the rolled value
+    G.diceValue = action.value;
+    G.rolled    = true;
+    updateGameUI();
+    return;
+  }
+
+  if (action.type === 'move') {
+    // Only animate if this move is from a different player
+    if (action.color === localColor) return;
+    // Sync start position before animating so computeSteps is accurate
+    G.pieces[action.color][action.idx] = action.fromPos;
+    // Animate the piece walking step by step
+    animatePieceMove(action.color, action.idx, action.steps, () => {
+      // Apply final position
+      G.pieces[action.color][action.idx] = action.finalPos;
+      if (action.finalPos === 57) {
+        G.finished[action.color]++;
+        addLog(`${action.color} piece ${action.idx+1} reached home! 🏠`, 'win');
+      } else if (action.fromPos === -1) {
+        addLog(`${action.color} piece ${action.idx+1} entered the board!`, 'move');
+      }
+      // Apply any capture that came with the move
+      if (action.capture) {
+        G.pieces[action.capture.other][action.capture.oidx] = -1;
+        addLog(`${action.color} captured ${action.capture.other} piece ${action.capture.oidx+1}!`, 'win');
+      }
+      renderPieces();
+      updateGameUI();
+    });
+    return;
+  }
+}
+
+/**
+ * Apply a full game state snapshot from a remote player.
+ * Used as a consistency catch-up after actions — merges all fields
+ * and (if a roll is detected and not yet animated by applyRemoteAction)
+ * shows the dice animation.
  */
 function applyRemoteGameState(remoteState) {
   if (!remoteState || !G.started) return;
@@ -474,9 +534,9 @@ function applyRemoteGameState(remoteState) {
   const prevRolled    = G.rolled;
 
   // ── Merge core turn/rolled/dice fields ──────────────────────
-  if (typeof remoteState.turn       === 'number') G.turn       = remoteState.turn;
-  if (typeof remoteState.rolled     === 'boolean') G.rolled    = remoteState.rolled;
-  if (typeof remoteState.diceValue  === 'number') G.diceValue  = remoteState.diceValue;
+  if (typeof remoteState.turn       === 'number')  G.turn       = remoteState.turn;
+  if (typeof remoteState.rolled     === 'boolean') G.rolled     = remoteState.rolled;
+  if (typeof remoteState.diceValue  === 'number')  G.diceValue  = remoteState.diceValue;
   if (typeof remoteState.winnerColor !== 'undefined') G.winnerColor = remoteState.winnerColor;
   if (remoteState.updatedAt) G.updatedAt = remoteState.updatedAt;
 
@@ -505,22 +565,19 @@ function applyRemoteGameState(remoteState) {
     });
   }
 
-  // ── Detect a remote dice roll and animate it ─────────────────
-  // Conditions:
-  //   1. The source is 'roll' or 'bonus' (explicit roll broadcast), OR
-  //      the rolled flag just became true while dice value changed.
-  //   2. The rolling color is NOT the local player (would be their own roll).
-  //   3. The dice value is valid (1-6).
-  const rollingColor  = ACTIVE_COLORS[remoteState.turn % ACTIVE_COLORS.length];
-  const isRemoteRoll  = rollingColor !== localColor;
-  const diceChanged   = remoteState.diceValue !== prevDiceValue || (!prevRolled && remoteState.rolled);
-  const isRollEvent   = remoteState.source === 'roll' || remoteState.source === 'bonus';
-  const validDice     = remoteState.diceValue >= 1 && remoteState.diceValue <= 6;
+  // ── Detect a remote dice roll not yet covered by game:action ─
+  // Only animate if the roll event arrives here before game:action
+  // (race condition safety net — won't double-animate because
+  //  applyRemoteAction returns early if source===localColor, and
+  //  this path only fires for non-local source rolls)
+  const rollingColor = ACTIVE_COLORS[remoteState.turn % ACTIVE_COLORS.length];
+  const isRemoteRoll = rollingColor !== localColor;
+  const diceChanged  = remoteState.diceValue !== prevDiceValue || (!prevRolled && remoteState.rolled);
+  const isRollEvent  = remoteState.source === 'roll' || remoteState.source === 'bonus';
+  const validDice    = remoteState.diceValue >= 1 && remoteState.diceValue <= 6;
 
   if (isRemoteRoll && diceChanged && isRollEvent && validDice) {
-    // Show the dice animation so this player sees the opponent's roll
     animateDice(remoteState.diceValue, null);
-    // Log entry mirrors what the local rollDice() produces
     const colorLabel = rollingColor.charAt(0).toUpperCase() + rollingColor.slice(1);
     addLog(`${colorLabel} rolled a ${remoteState.diceValue}`, 'roll');
   }
@@ -541,6 +598,7 @@ function connectGameSocket() {
       player: { name: player.name, color: localColor },
     });
   });
+
   GAME_SOCKET.on('game:state', (remoteState) => {
     if (!remoteState || remoteState.roomId !== roomId) return;
 
@@ -554,6 +612,16 @@ function connectGameSocket() {
     if (isStaleEcho && !isRollEvent) return;
 
     applyRemoteGameState(remoteState);
+  });
+
+  GAME_SOCKET.on('game:action', (payload) => {
+    if (!payload || payload.roomId !== roomId) return;
+    const action = payload.action;
+    if (!action) return;
+
+    // Ignore stale local echoes; remote actions still animate for all room members.
+    if (action.color === localColor) return;
+    applyRemoteAction(action);
   });
 }
 
@@ -671,6 +739,10 @@ function rollDice(computerTurn = false) {
   const value = Math.floor(Math.random()*6)+1;
   G.diceValue=value; G.rolled=true;
   const rollBtn = $('rollDiceBtn'); if(rollBtn) rollBtn.disabled=true;
+
+  // Broadcast the roll immediately so remote clients start their animation
+  // in parallel — don't wait for the local animation to finish
+  broadcastAction({ type: 'roll', color: col, value });
 
   animateDice(value, () => {
     G.updatedAt = Date.now();
@@ -848,6 +920,10 @@ function movePiece(color, idx, steps) {
   }
 
   // ── Animate step by step ──
+  // Broadcast the move to remote clients immediately so they animate in parallel
+  broadcastAction({ type: 'move', color, idx, fromPos: pos, steps, finalPos,
+    capture: captureInfo ? { other: captureInfo.other, oidx: captureInfo.oidx } : null });
+
   animatePieceMove(color, idx, steps, () => {
     // Apply final state
     G.pieces[color][idx] = finalPos;
