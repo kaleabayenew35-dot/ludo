@@ -1766,7 +1766,21 @@ function startRoomPoll(roomId) {
 
       // Update card live
       const card = document.querySelector(`[data-room-id="${roomId}"]`);
-      if (card) card.parentNode.replaceChild(buildOnlineRoomCard(room), card);
+      if (card) {
+        const wasExpanded = !card.classList.contains('collapsed');
+        const updatedCard = buildOnlineRoomCard(room);
+        if (wasExpanded) {
+          const updatedDetails = updatedCard.querySelector('.or-room-details');
+          const updatedToggle = updatedCard.querySelector('.or-toggle-btn');
+          updatedCard.classList.remove('collapsed');
+          if (updatedDetails) updatedDetails.hidden = false;
+          if (updatedToggle) {
+            updatedToggle.textContent = '▾';
+            updatedToggle.setAttribute('aria-expanded', 'true');
+          }
+        }
+        card.parentNode.replaceChild(updatedCard, card);
+      }
       updateRoomCount(data.rooms);
 
       if (room.status === 'started') {
