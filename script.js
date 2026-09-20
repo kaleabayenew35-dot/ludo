@@ -1555,13 +1555,6 @@ function buildOnlineRoomCard(room) {
     <div class="or-main-action"></div>`;
 
   const roomDetails = make('div', 'or-room-details');
-  if (safeRoom.status === 'countdown' && safeRoom.countdown > 0) {
-    const cdRow = make('div', 'or-cd-row');
-    cdRow.innerHTML = `
-      <span class="or-cd-pill${safeRoom.countdown <= 8 ? ' urgent' : ''}">⏱ ${safeRoom.countdown}s</span>
-      <div class="or-cd-bar"><div class="or-cd-fill${safeRoom.countdown <= 8 ? ' urgent' : ''}" style="width:${Math.round(safeRoom.countdown/30*100)}%"></div></div>`;
-    roomDetails.appendChild(cdRow);
-  }
 
   const details = make('div', 'or-room-details-inner');
   const playersList = make('div', 'or-players-list');
@@ -1718,6 +1711,7 @@ async function handleOnlineJoin(roomId, card) {
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Join failed');
+    _roomRedirecting = false;
     S._joinedRoomId = roomId;
     showToastBar(`Joined Room #${roomId}!`, 'success');
     renderOnlineBar();
@@ -1749,10 +1743,14 @@ async function handleOnlineLeave(roomId) {
 
 // ── Poll for room:started (fallback without socket on index.html) ─────────
 let _roomPollTimer = null;
+let _roomRedirecting = false;
+let _roomPollInFlight = false;
 function startRoomPoll(roomId) {
   stopRoomPoll();
-  _roomPollTimer = setInterval(async () => {
+  const checkRoom = async () => {
+    if (_roomRedirecting || _roomPollInFlight) return;
     if (!S._joinedRoomId) { stopRoomPoll(); return; }
+    _roomPollInFlight = true;
     try {
       const res  = await fetch(`${LUDO_API_URL}/api/rooms?bet=${S.selectedAmount}`, { cache: 'no-store' });
       const data = await res.json();
@@ -1781,12 +1779,17 @@ function startRoomPoll(roomId) {
       updateRoomCount(data.rooms);
 
       if (room.status === 'started') {
+        _roomRedirecting = true;
         stopRoomPoll();
         S._joinedRoomId = null;
         redirectFromIndex(room);
       }
-    } catch(e) {}
-  }, 2000);
+    } catch(e) {} finally {
+      _roomPollInFlight = false;
+    }
+  };
+  checkRoom();
+  _roomPollTimer = setInterval(checkRoom, 1000);
 }
 function stopRoomPoll() {
   if (_roomPollTimer) { clearInterval(_roomPollTimer); _roomPollTimer = null; }
