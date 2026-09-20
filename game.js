@@ -508,6 +508,18 @@ function applyRemoteAction(action) {
         G.pieces[action.capture.other][action.capture.oidx] = -1;
         addLog(`${action.color} captured ${action.capture.other} piece ${action.capture.oidx+1}!`, 'win');
       }
+
+      const shouldKeepTurn = !!action.capture || (action.fromPos === -1 && action.steps === 6);
+      if (shouldKeepTurn) {
+        G.turn = ACTIVE_COLORS.indexOf(action.color);
+      } else {
+        let nextTurnIndex = ACTIVE_COLORS.indexOf(action.color);
+        do {
+          nextTurnIndex = (nextTurnIndex + 1) % ACTIVE_COLORS.length;
+        } while (G.eliminated[ACTIVE_COLORS[nextTurnIndex]]);
+        G.turn = nextTurnIndex;
+      }
+
       renderPieces();
       updateGameUI();
     });
@@ -946,18 +958,24 @@ function movePiece(color, idx, steps) {
     }
 
     renderPieces();
-    broadcastGameState('move');
 
     if (bonusTurn && color === localColor) {
       addLog('Bonus turn! Roll again.', 'roll');
       G.rolled = false;
       updateGameUI();
+      G.updatedAt = Date.now();
       broadcastGameState('bonus');
-    } else if (bonusTurn) {
+      return;
+    }
+
+    if (bonusTurn) {
       nextTurn(color);
     } else {
       nextTurn();
     }
+
+    G.updatedAt = Date.now();
+    broadcastGameState('move');
   });
 }
 
