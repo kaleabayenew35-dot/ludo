@@ -332,6 +332,9 @@ function renderGamePlayers() {
 // ── Game UI ───────────────────────────────────────────────────
 function currentColor() { return ACTIVE_COLORS[G.turn % ACTIVE_COLORS.length]; }
 function updateGameUI() {
+  // Guard: ensure ACTIVE_COLORS is defined and non‑empty before updating UI elements.
+  if (!Array.isArray(ACTIVE_COLORS) || ACTIVE_COLORS.length === 0) return;
+
   const col = currentColor();
   const dot = $('turnDot'); if (dot) dot.className = `turn-dot ${col}`;
   const txt = $('turnText');
@@ -342,7 +345,7 @@ function updateGameUI() {
   const rollBtn = $('rollDiceBtn');
   if (rollBtn) rollBtn.disabled = !G.started || G.rolled || col !== localColor || G.eliminated[localColor];
 
-  // Update only the active players' rows (ignore blue/other inactive colors)
+  // Update only the active players' rows (ignore inactive colors)
   ACTIVE_COLORS.forEach((c, i) => {
     const row = $(`gpr-${c}`);
     if (!row) return;
