@@ -619,6 +619,19 @@ function connectGameSocket() {
     if (action.socketId === GAME_SOCKET.id) return;
     applyRemoteAction(action);
   });
+
+  // Opponent intentionally left the game — we win immediately
+  GAME_SOCKET.on('game:player:left', (payload) => {
+    if (!payload || payload.roomId !== roomId) return;
+    if (!G.started || endGame._called) return;
+    // The leaving player's color is the loser; we are the winner
+    const leavingColor = payload.leavingColor;
+    const leavingName  = payload.leavingName || leavingColor;
+    if (leavingColor === localColor) return; // shouldn't happen, but guard
+    // Mark them as gone and declare us the winner
+    G.eliminated[leavingColor] = true;
+    declareWinner(localColor);
+  });
 }
 
 function startGame() {
@@ -647,17 +660,39 @@ function startGame() {
 $('startGameBtn').addEventListener('click', startGame);
 $('gameBackBtn')?.addEventListener('click', () => {
   if (G.started) {
-    notifyRoomLeave();
-    endGame(false, ACTIVE_COLORS.find(color => color !== localColor) || 'AI');
+    forfeitGame();
   } else {
     window.location.href = 'index.html';
   }
 });
 $('forfeitBtn').addEventListener('click', () => {
   if (!G.started) return;
-  notifyRoomLeave();
-  endGame(false, ACTIVE_COLORS.find(color => color !== localColor) || 'AI');
+  forfeitGame();
 });
+
+/**
+ * Called when the local player intentionally leaves a live game.
+ * 1. Tells the backend the room should reset.
+ * 2. Emits game:player:left so the opponent's client shows the WIN modal.
+ * 3. Shows the LOSE modal on this client for 3 s then redirects.
+ */
+function forfeitGame() {
+  if (!G.started || endGame._called) return;
+
+  // Tell backend & opponent before we navigate away
+  notifyRoomLeave();
+
+  if (GAME_SOCKET?.connected && roomId) {
+    GAME_SOCKET.emit('game:player:left', {
+      roomId,
+      leavingColor : localColor,
+      leavingName  : player.name,
+    });
+  }
+
+  // Show lose modal on this (leaving) client, then go to dashboard
+  endGame(false, ACTIVE_COLORS.find(c => c !== localColor) || 'Opponent');
+}
 $('rollDiceBtn').addEventListener('click', () => { if (!G.started||G.rolled) return; rollDice(); });
 
 // Click anywhere on the dice scene (scene wrapper is the reliable hit target)
