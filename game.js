@@ -21,18 +21,18 @@ const MAIN_PATH = [
 ];
 const SAFE_POSITIONS = new Set([0,8,13,21,26,34,39,47]);
 const HOME_COLS = {
-  green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],
+  yellow: [[7,1],[7,2],[7,3],[7,4],[7,5]],
   red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],
   blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],
-  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]
+  green:  [[13,7],[12,7],[11,7],[10,7],[9,7]]
 };
-const ENTRY_POS      = { green:0, red:13, blue:26, yellow:39 };
-const HOME_COL_ENTRY = { green:51, red:12, blue:25, yellow:38 };
+const ENTRY_POS      = { yellow:0, red:13, blue:26, green:39 };
+const HOME_COL_ENTRY = { yellow:51, red:12, blue:25, green:38 };
 const HOME_SLOTS = {
-  green:  [[1,1],[1,4],[4,1],[4,4]],
+  yellow: [[1,1],[1,4],[4,1],[4,4]],
   red:    [[1,10],[1,13],[4,10],[4,13]],
   blue:   [[10,10],[10,13],[13,10],[13,13]],
-  yellow: [[10,1],[10,4],[13,1],[13,4]]
+  green:  [[10,1],[10,4],[13,1],[13,4]]
 };
 
 const COLORS     = ['red','blue','green','yellow'];

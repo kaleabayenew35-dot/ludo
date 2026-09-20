@@ -27,22 +27,22 @@ const SAFE_POSITIONS = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
 const HOME_COLS = {
   red:    [[7,1],[7,2],[7,3],[7,4],[7,5]],
   blue:   [[1,7],[2,7],[3,7],[4,7],[5,7]],
-  yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]],
-  green:  [[13,7],[12,7],[11,7],[10,7],[9,7]]
+  green:  [[7,13],[7,12],[7,11],[7,10],[7,9]],
+  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]
 };
 
 // Where each color enters the main path
-const ENTRY_POS = { red: 0, blue: 13, yellow: 26, green: 39 };
+const ENTRY_POS = { red: 0, blue: 13, green: 26, yellow: 39 };
 
 // Where each color enters its home column (path index AFTER this triggers home col entry)
-const HOME_COL_ENTRY = { red: 51, blue: 12, yellow: 25, green: 38 };
+const HOME_COL_ENTRY = { red: 51, blue: 12, green: 25, yellow: 38 };
 
 // Home piece slots (where pieces sit when not yet entered)
 const HOME_SLOTS = {
   red:    [[1,1],[1,4],[4,1],[4,4]],
   blue:   [[1,10],[1,13],[4,10],[4,13]],
-  yellow: [[10,10],[10,13],[13,10],[13,13]],
-  green:  [[10,1],[10,4],[13,1],[13,4]]
+  green:  [[10,10],[10,13],[13,10],[13,13]],
+  yellow: [[10,1],[10,4],[13,1],[13,4]]
 };
 
 // ─── APP STATE ───────────────────────────────────────────────
@@ -774,38 +774,6 @@ function currentColor() {
   return activeColors[S.game.turn % activeColors.length];
 }
 
-function syncRoomStateAcrossTabs() {
-  if (!room.id) return;
-  const payload = {
-    roomId: room.id,
-    game: {
-      ...S.game,
-      turn: S.game.turn,
-      rolled: S.game.rolled,
-      diceValue: S.game.diceValue,
-      pieces: JSON.parse(JSON.stringify(S.game.pieces)),
-      finished: JSON.parse(JSON.stringify(S.game.finished)),
-      started: S.game.started,
-      active: S.game.active,
-    },
-    players: room.players.map(p => ({ ...p })),
-    at: Date.now(),
-  };
-  localStorage.setItem(`ludo-room-state-${room.id}`, JSON.stringify(payload));
-}
-
-window.addEventListener('storage', (event) => {
-  if (!event.key || !event.key.startsWith('ludo-room-state-')) return;
-  const payload = event.newValue ? JSON.parse(event.newValue) : null;
-  if (!payload || payload.roomId !== room.id) return;
-  if (!payload.game) return;
-  S.game = { ...S.game, ...payload.game };
-  room.players = Array.isArray(payload.players) ? payload.players : room.players;
-  renderGamePlayers();
-  renderPieces();
-  updateGameUI();
-});
-
 function renderGamePlayers() {
   const container = $('gamePlayers');
   container.innerHTML = '';
@@ -860,7 +828,6 @@ function rollDice() {
   S.game.diceValue = value;
   S.game.rolled = true;
   $('rollDiceBtn').disabled = true;
-  syncRoomStateAcrossTabs();
 
   const diceEl = $('dice');
   diceEl.classList.add('rolling');
@@ -875,13 +842,11 @@ function rollDice() {
       const movable = getMovablePieces(col, value);
       if (movable.length === 0) {
         addLog('No valid moves. Turn skipped.', 'move');
-        syncRoomStateAcrossTabs();
         setTimeout(nextTurn, 900);
       }
     } else {
       setTimeout(() => aiMove(col, value), 700);
     }
-    syncRoomStateAcrossTabs();
   }, 560);
 }
 
@@ -978,13 +943,11 @@ function movePiece(color, idx, steps) {
 
   g.pieces[color][idx] = newPos;
   renderPieces();
-  syncRoomStateAcrossTabs();
 
   if (bonusTurn && color === 'red') {
     addLog('Bonus turn! Roll again.', 'roll');
     g.rolled = false;
     updateGameUI();
-    syncRoomStateAcrossTabs();
   } else if (bonusTurn) {
     nextTurn(color);
   } else {
@@ -1017,7 +980,6 @@ function nextTurn(forceColor) {
   const activeColors = getColorOrderForPlayerCount(Math.max(2, room.players.length || 2));
   if (!forceColor) S.game.turn = (S.game.turn + 1) % activeColors.length;
   else S.game.turn = activeColors.indexOf(forceColor);
-  syncRoomStateAcrossTabs();
   updateGameUI();
   resetTurnTimer();
 
