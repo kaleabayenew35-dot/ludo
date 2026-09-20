@@ -1796,7 +1796,7 @@ button { cursor: pointer; font-family: inherit; }
   background: rgba(78,148,255,.12); border: 1px solid rgba(78,148,255,.25);
   border-radius: 3px; padding: 1px 4px; text-transform: uppercase;
 }
-.or-player-stats { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+.or-player-stats { display: inline-block; margin-top: 4px; color: var(--text-1); font-size: 13px; font-weight: 700; letter-spacing: .02em; line-height: 1.3; }
 .or-bet-pill {
   font-size: 10px; font-weight: 700; color: var(--green);
   border: 1px solid rgba(54,232,156,.4); border-radius: 99px;
