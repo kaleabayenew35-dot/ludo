@@ -52,6 +52,13 @@ const player = {
 const selectedAmount = saved.selectedAmount || 10;
 const opponent       = saved.opponent       || { name: 'AI' };
 const autoStart      = saved.autoStart      || false;
+const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
+const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
+const ACTIVE_COLORS   = playerCount === 2
+  ? ['red', 'yellow']
+  : playerCount === 3
+    ? ['red', 'yellow', 'green']
+    : ['red', 'blue', 'green', 'yellow'];
 
 // ── Game state ────────────────────────────────────────────────
 // ── Game state ────────────────────────────────────────────────
@@ -183,7 +190,7 @@ function renderPieces() {
 
   // Build a map: "r-c" => [{color, idx}, ...]
   const cellMap = {};
-  COLORS.forEach(color => {
+  ACTIVE_COLORS.forEach(color => {
     G.pieces[color].forEach((_, idx) => {
       const rc = piecePos(color, idx);
       if (!rc) return;
@@ -226,9 +233,13 @@ function renderGamePlayers() {
   const container = $('gamePlayers');
   if (!container) return;
   container.innerHTML = '';
-  const names = [`You (Red)`, `${opponent.name || 'AI'} (Blue)`, 'AI Green', 'AI Yellow'];
-  COLORS.forEach((col,i) => {
-    const row = make('div', 'game-player-row' + (i === G.turn%4 ? ' active-player' : ''));
+  const names = ACTIVE_COLORS.map((color, index) => {
+    if (index === 0) return 'You (Red)';
+    if (index === 1) return `${opponent.name || 'AI'} (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
+    return `AI ${color.charAt(0).toUpperCase()}${color.slice(1)}`;
+  });
+  ACTIVE_COLORS.forEach((col,i) => {
+    const row = make('div', 'game-player-row' + (i === G.turn % ACTIVE_COLORS.length ? ' active-player' : ''));
     row.id = `gpr-${col}`;
     row.innerHTML = `
       <div class="color-dot ${col}"></div>
@@ -239,17 +250,17 @@ function renderGamePlayers() {
 }
 
 // ── Game UI ───────────────────────────────────────────────────
-function currentColor() { return COLORS[G.turn % 4]; }
+function currentColor() { return ACTIVE_COLORS[G.turn % ACTIVE_COLORS.length]; }
 function updateGameUI() {
   const col=currentColor();
   const dot=$('turnDot'); if (dot) dot.className=`turn-dot ${col}`;
   const txt=$('turnText'); if (txt) txt.textContent=(col==='red'?'Your':col.charAt(0).toUpperCase()+col.slice(1))+"'s Turn";
   const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled;
   // Update player rows with eliminated styling
-  COLORS.forEach((c,i)=>{
+  ACTIVE_COLORS.forEach((c,i)=>{
     const row=$(`gpr-${c}`);
     if (row) {
-      row.className='game-player-row'+(i===G.turn%4?' active-player':'');
+      row.className='game-player-row'+(i===G.turn%ACTIVE_COLORS.length?' active-player':'');
       if (G.eliminated[c]) row.classList.add('player-lost'); else row.classList.remove('player-lost');
       const span=row.querySelector('span:last-child');
       if (span) span.textContent=`${G.finished[c]}/4`;
@@ -608,15 +619,15 @@ function nextTurn(forceColor) {
   if (!forceColor) {
     // advance turn, skipping eliminated players
     do {
-      G.turn = (G.turn + 1) % 4;
-    } while (G.eliminated[COLORS[G.turn]]);
+      G.turn = (G.turn + 1) % ACTIVE_COLORS.length;
+    } while (G.eliminated[ACTIVE_COLORS[G.turn]]);
   } else {
-    G.turn = COLORS.indexOf(forceColor);
+    G.turn = Math.max(0, ACTIVE_COLORS.indexOf(forceColor));
   }
   updateGameUI();
   resetTurnTimer();
  function autoDeclareWhenOneLeft() {
-  const alive = COLORS.filter(c => !G.eliminated[c]);
+  const alive = ACTIVE_COLORS.filter(c => !G.eliminated[c]);
   if (alive.length===1 && G.started) {
     // automatic win for the last remaining player
     const winner = alive[0];
@@ -630,7 +641,7 @@ function checkWin(color) {
     G.eliminated[color]=true;
     addLog(`${color} finished all pieces!`, 'win');
     // Auto win if only one player remains
-    const alive = COLORS.filter(c => !G.eliminated[c]);
+    const alive = ACTIVE_COLORS.filter(c => !G.eliminated[c]);
     if (alive.length===1 && G.started) {
       declareWinner(alive[0]);
     }
@@ -649,7 +660,7 @@ function declareWinner(winnerColor) {
   const loserList=$('loserList');
   if (loserList) {
     loserList.innerHTML='';
-    COLORS.filter(c=>c!==winnerColor).forEach(c=>{
+    ACTIVE_COLORS.filter(c=>c!==winnerColor).forEach(c=>{
       const li=document.createElement('li'); li.textContent=c.charAt(0).toUpperCase()+c.slice(1);
       loserList.appendChild(li);
     });
