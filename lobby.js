@@ -225,6 +225,7 @@ function redirectToGame(betAmount, players) {
     totalWon      : 0,
     totalLost     : 0,
     selectedAmount: betAmount,
+    roomId        : state.currentRoomId,
     opponent      : players.filter(function(p){ return p.name !== state.player.name; })[0] || { name: 'Opponent' },
     autoStart     : true,
     lobbyPlayers  : players,

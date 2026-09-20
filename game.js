@@ -37,6 +37,7 @@ const HOME_SLOTS = {
 
 const COLORS     = ['red','blue','green','yellow'];
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+const LUDO_API_URL = (window.__LUDO_BACKEND_URL__ || 'https://ludo-backend-wykz.onrender.com').replace(/\/$/, '');
 
 // ── Load state from sessionStorage ───────────────────────────
 const saved = JSON.parse(sessionStorage.getItem('ludoGameState') || '{}');
@@ -52,6 +53,7 @@ const player = {
 const selectedAmount = saved.selectedAmount || 10;
 const opponent       = saved.opponent       || { name: 'AI' };
 const autoStart      = saved.autoStart      || false;
+const roomId          = saved.roomId || null;
 const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 const ACTIVE_COLORS   = playerCount === 2
@@ -105,9 +107,55 @@ syncHeader();
 // ── Timer ─────────────────────────────────────────────────────
 let turnTimer = null;
 let secondsLeft = 60;
+let presenceTimer = null;
 
 function stopTurnTimer() {
   if (turnTimer) { clearInterval(turnTimer); turnTimer = null; }
+}
+
+function stopPresenceWatch() {
+  if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; }
+}
+
+function notifyRoomLeave() {
+  if (!roomId || !player.name) return;
+  fetch(`${LUDO_API_URL}/api/rooms/${encodeURIComponent(roomId)}/leave`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: player.name }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
+function eliminatePlayer(color) {
+  if (!ACTIVE_COLORS.includes(color) || G.eliminated[color]) return;
+  G.eliminated[color] = true;
+  removePlayerPieces(color);
+  addLog(`${color.charAt(0).toUpperCase() + color.slice(1)} left the game.`, 'move');
+  updateGameUI();
+  const alive = ACTIVE_COLORS.filter(activeColor => !G.eliminated[activeColor]);
+  if (alive.length === 1 && G.started) declareWinner(alive[0]);
+}
+
+function startPresenceWatch() {
+  stopPresenceWatch();
+  if (!roomId || !lobbyPlayers.length) return;
+  const checkPresence = async () => {
+    if (!G.started) return;
+    try {
+      const response = await fetch(`${LUDO_API_URL}/api/rooms?bet=${encodeURIComponent(selectedAmount)}`, { cache: 'no-store' });
+      const payload = await response.json();
+      const room = (payload.rooms || []).find(candidate => candidate.id === roomId);
+      if (!room || room.status !== 'started') return;
+      const present = new Set((room.players || []).map(currentPlayer => String(currentPlayer.name)));
+      lobbyPlayers.filter(lobbyPlayer => String(lobbyPlayer.name) !== String(player.name)).forEach((lobbyPlayer, index) => {
+        if (present.has(String(lobbyPlayer.name))) return;
+        eliminatePlayer(ACTIVE_COLORS[index + 1]);
+      });
+    } catch (_) {}
+  };
+  checkPresence();
+  presenceTimer = setInterval(checkPresence, 1000);
 }
 function resetTurnTimer() {
   stopTurnTimer();
@@ -309,12 +357,14 @@ function startGame() {
   const gameId = Math.floor(10000 + Math.random()*90000);
   const idEl   = $('gameHeaderId'); if (idEl) idEl.textContent='#'+gameId;
   resetTurnTimer();
+  startPresenceWatch();
 }
 
 // ── Button listeners ──────────────────────────────────────────
 $('startGameBtn').addEventListener('click', startGame);
 $('gameBackBtn')?.addEventListener('click', () => {
   if (G.started) {
+    notifyRoomLeave();
     endGame(false, ACTIVE_COLORS.find(color => color !== 'red') || 'AI');
   } else {
     window.location.href = 'index.html';
@@ -322,6 +372,7 @@ $('gameBackBtn')?.addEventListener('click', () => {
 });
 $('forfeitBtn').addEventListener('click', () => {
   if (!G.started) return;
+  notifyRoomLeave();
   endGame(false, ACTIVE_COLORS.find(color => color !== 'red') || 'AI');
 });
 $('rollDiceBtn').addEventListener('click', () => { if (!G.started||G.rolled) return; rollDice(); });
@@ -723,6 +774,7 @@ function endGame(playerWon, winnerColor) {
   }
 
   G.active = false; G.started = false;
+  stopPresenceWatch();
   const startBtn = $('startGameBtn'); if (startBtn) startBtn.disabled = false;
   const rollBtn = $('rollDiceBtn'); if (rollBtn) rollBtn.disabled = true;
   stopTurnTimer();

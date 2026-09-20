@@ -1804,6 +1804,7 @@ function redirectFromIndex(room) {
     name: S.player.name, balance: S.player.balance, wins: S.player.wins||0,
     losses: S.player.losses||0, totalWon: S.player.totalWon||0, totalLost: S.player.totalLost||0,
     selectedAmount: room.betAmount,
+    roomId: room.id,
     opponent: (room.players.find(p => p.name !== S.player.name) || { name: 'Opponent' }),
     autoStart: true, lobbyPlayers: room.players,
   };
