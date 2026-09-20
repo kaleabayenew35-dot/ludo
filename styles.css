@@ -1684,7 +1684,14 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--text-3);
   font-weight: 700;
 }
-.or-room-summary span:last-child {
+.or-room-summary .or-countdown-value {
+  color: var(--green);
+}
+.or-room-summary .or-countdown-value.urgent,
+.or-status-badge.status-countdown.urgent {
+  color: var(--red);
+}
+.or-status-badge.status-countdown {
   color: var(--green);
 }
 .or-room-summary .or-compact-action-btn {

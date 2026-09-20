@@ -1533,9 +1533,11 @@ function buildOnlineRoomCard(room) {
   card.dataset.roomId = safeRoom.id;
   card.classList.toggle('collapsed', false);
 
-  const statusText = started ? '🎮 In Game' : safeRoom.status === 'countdown' ? '⏳ Starting…' : count === 0 ? '🟢 Empty' : '👥 Open';
+  const countdownActive = safeRoom.status === 'countdown' && safeRoom.countdown > 0;
+  const countdownClass = countdownActive && safeRoom.countdown <= 8 ? ' urgent' : '';
+  const statusText = started ? '🎮 In Game' : countdownActive ? `⏳ ${safeRoom.countdown}s` : count === 0 ? '🟢 Empty' : '👥 Open';
   const compactSummary = count === 0 ? 'Create room' : `Join ${count}/4`;
-  const compactCountdown = safeRoom.status === 'countdown' && safeRoom.countdown > 0 ? `Starts in ${safeRoom.countdown}s` : 'Ready now';
+  const compactCountdown = countdownActive ? `${safeRoom.countdown}s` : 'Ready now';
   const compactActionLabel = started ? 'In game' : iAmHere ? 'Leave room' : isFull ? 'Full' : inOther ? 'Busy' : count === 0 ? '+ Create Room' : '+ Join Room';
   const compactDisabled = started || isFull || inOther ? true : false;
 
@@ -1543,13 +1545,13 @@ function buildOnlineRoomCard(room) {
     <div class="or-room-top">
       <span class="or-room-id">ROOM #${safeRoom.id}</span>
       <span class="or-room-count"><strong>${count}</strong> / 4</span>
-      <span class="or-status-badge status-${safeRoom.status}">${statusText}</span>
+      <span class="or-status-badge status-${safeRoom.status}${countdownClass}">${statusText}</span>
       <button type="button" class="or-toggle-btn" aria-expanded="true">▾</button>
     </div>
     <div class="or-room-summary">
       <span>${count} players</span>
       <span>${safeRoom.betAmount} ETB</span>
-      <span>${compactCountdown}</span>
+      <span class="or-countdown-value${countdownClass}">${compactCountdown}</span>
       <button type="button" class="or-compact-action-btn" ${compactDisabled ? 'disabled' : ''}>${compactActionLabel}</button>
     </div>
     <div class="or-main-action"></div>`;
@@ -1613,11 +1615,6 @@ function buildOnlineRoomCard(room) {
     inGame.textContent = '🎮 Game in progress';
     actionWrap.appendChild(inGame);
   } else if (iAmHere) {
-    if (count >= 2 && safeRoom.status === 'countdown') {
-      const startingMsg = make('div', 'or-starting-msg');
-      startingMsg.innerHTML = `▶ Starting in <strong>${safeRoom.countdown}s</strong>…`;
-      actionWrap.appendChild(startingMsg);
-    }
   } else {
     const joinBtn = make('button', 'or-join-btn');
     if (isFull) {
