@@ -162,6 +162,11 @@ function resetTurnTimer() {
   secondsLeft = 60;
   updateTimerDisplay();
   if (!G.started) return;
+  if (currentColor() !== 'red') {
+    setTimeout(() => {
+      if (G.started && !G.rolled && currentColor() !== 'red') rollDice(true);
+    }, 700);
+  }
   turnTimer = setInterval(() => {
     secondsLeft--;
     updateTimerDisplay();
@@ -304,7 +309,7 @@ function updateGameUI() {
   const col=currentColor();
   const dot=$('turnDot'); if (dot) dot.className=`turn-dot ${col}`;
   const txt=$('turnText'); if (txt) txt.textContent=(col==='red'?'Your':col.charAt(0).toUpperCase()+col.slice(1))+"'s Turn";
-  const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled;
+    const rollBtn=$('rollDiceBtn'); if (rollBtn) rollBtn.disabled=!G.started || G.rolled || col !== 'red';
   // Update player rows with eliminated styling
   ACTIVE_COLORS.forEach((c,i)=>{
     const row=$(`gpr-${c}`);
@@ -447,8 +452,9 @@ function animateDice(value, onDone) {
   }, 600);
 }
 
-function rollDice() {
+function rollDice(computerTurn = false) {
   const col   = currentColor();
+  if (!G.started || G.rolled || (!computerTurn && col !== 'red')) return;
   const value = Math.floor(Math.random()*6)+1;
   G.diceValue=value; G.rolled=true;
   const rollBtn = $('rollDiceBtn'); if(rollBtn) rollBtn.disabled=true;
