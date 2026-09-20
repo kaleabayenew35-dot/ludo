@@ -1,3 +1,5 @@
+.player-result-win { color: var(--green) !important; font-weight: 800; }
+.player-result-loss { color: var(--red) !important; font-weight: 800; }
 /* ════════════════════════════════════════
    GAME PAGE — game.html
    ════════════════════════════════════════ */

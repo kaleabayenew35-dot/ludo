@@ -71,6 +71,7 @@ const G = {
   pieces: { red:[-1,-1,-1,-1], blue:[-1,-1,-1,-1], green:[-1,-1,-1,-1], yellow:[-1,-1,-1,-1] },
   finished: { red:0, blue:0, green:0, yellow:0 },
   eliminated: { red:false, blue:false, green:false, yellow:false }, // true = player has lost / left
+  winnerColor: null,
   log: []
 };
 
@@ -244,7 +245,7 @@ function renderGamePlayers() {
     row.innerHTML = `
       <div class="color-dot ${col}"></div>
       <span style="flex:1;font-size:11px">${names[i]}</span>
-      <span style="font-size:10px;color:var(--text-3)">${G.finished[col]}/4</span>`;
+      <span class="gpr-result" style="font-size:10px;color:var(--text-3)">${G.finished[col]}/4</span>`;
     container.appendChild(row);
   });
 }
@@ -262,8 +263,11 @@ function updateGameUI() {
     if (row) {
       row.className='game-player-row'+(i===G.turn%ACTIVE_COLORS.length?' active-player':'');
       if (G.eliminated[c]) row.classList.add('player-lost'); else row.classList.remove('player-lost');
-      const span=row.querySelector('span:last-child');
-      if (span) span.textContent=`${G.finished[c]}/4`;
+      const span=row.querySelector('.gpr-result');
+      if (span) {
+        span.textContent = G.eliminated[c] ? 'LOSE' : G.winnerColor === c ? 'WIN' : `${G.finished[c]}/4`;
+        span.className = `gpr-result ${G.eliminated[c] ? 'player-result-loss' : G.winnerColor === c ? 'player-result-win' : ''}`;
+      }
     }
   });
 }
@@ -285,6 +289,7 @@ function resetGame() {
   COLORS.forEach(col => {
     G.pieces[col]=[-1,-1,-1,-1]; G.finished[col]=0; G.eliminated[col]=false;
   });
+  G.winnerColor = null;
   G.log=[]; renderPieces(); updateGameUI();
   const gameLog=$('gameLog'); if (gameLog) gameLog.innerHTML='<div class="log-entry">Game ready — press Start.</div>';
   const startBtn=$('startGameBtn'); if (startBtn) startBtn.disabled=false;
@@ -308,12 +313,16 @@ function startGame() {
 
 // ── Button listeners ──────────────────────────────────────────
 $('startGameBtn').addEventListener('click', startGame);
+$('gameBackBtn')?.addEventListener('click', () => {
+  if (G.started) {
+    endGame(false, ACTIVE_COLORS.find(color => color !== 'red') || 'AI');
+  } else {
+    window.location.href = 'index.html';
+  }
+});
 $('forfeitBtn').addEventListener('click', () => {
   if (!G.started) return;
-  const col=currentColor(); // player who clicks (red)
-  G.eliminated[col]=true;
-  toast(`${col.charAt(0).toUpperCase()+col.slice(1)} left the game.`, 'info');
-  nextTurn();
+  endGame(false, ACTIVE_COLORS.find(color => color !== 'red') || 'AI');
 });
 $('rollDiceBtn').addEventListener('click', () => { if (!G.started||G.rolled) return; rollDice(); });
 
@@ -648,12 +657,18 @@ function checkWin(color) {
   }
 }
 
+function removePlayerPieces(color) {
+  G.pieces[color] = [57, 57, 57, 57];
+  document.querySelectorAll(`.piece.${color}, [id^="piece-${color}-"]`).forEach(piece => piece.remove());
+}
+
 // ── End game ──────────────────────────────────────────────────
 function declareWinner(winnerColor) {
   // Mark all other players as eliminated
-  COLORS.forEach(c => {
+  ACTIVE_COLORS.forEach(c => {
     if (c!==winnerColor) G.eliminated[c]=true;
   });
+  G.winnerColor = winnerColor;
   // Update UI rows
   updateGameUI();
   // Populate loser list in win modal
@@ -674,6 +689,13 @@ function declareWinner(winnerColor) {
 }
 
 function endGame(playerWon, winnerColor) {
+  G.winnerColor = playerWon ? 'red' : winnerColor;
+  if (!playerWon) {
+    G.eliminated.red = true;
+    removePlayerPieces('red');
+  }
+  updateGameUI();
+
   // Persist result to backend (players balances & game log)
   async function persistResult() {
     const bet = selectedAmount;
