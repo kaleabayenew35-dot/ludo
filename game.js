@@ -21,18 +21,18 @@ const MAIN_PATH = [
 ];
 const SAFE_POSITIONS = new Set([0,8,13,21,26,34,39,47]);
 const HOME_COLS = {
-  red:    [[7,1],[7,2],[7,3],[7,4],[7,5]],
-  blue:   [[1,7],[2,7],[3,7],[4,7],[5,7]],
-  yellow: [[7,13],[7,12],[7,11],[7,10],[7,9]],
-  green:  [[13,7],[12,7],[11,7],[10,7],[9,7]]
+  green:  [[7,1],[7,2],[7,3],[7,4],[7,5]],
+  red:    [[1,7],[2,7],[3,7],[4,7],[5,7]],
+  blue:   [[7,13],[7,12],[7,11],[7,10],[7,9]],
+  yellow: [[13,7],[12,7],[11,7],[10,7],[9,7]]
 };
-const ENTRY_POS      = { red:0,  blue:13, yellow:26, green:39 };
-const HOME_COL_ENTRY = { red:51, blue:12, yellow:25, green:38 };
+const ENTRY_POS      = { green:0, red:13, blue:26, yellow:39 };
+const HOME_COL_ENTRY = { green:51, red:12, blue:25, yellow:38 };
 const HOME_SLOTS = {
-  red:    [[1,1],[1,4],[4,1],[4,4]],
-  blue:   [[1,10],[1,13],[4,10],[4,13]],
-  yellow: [[10,10],[10,13],[13,10],[13,13]],
-  green:  [[10,1],[10,4],[13,1],[13,4]]
+  green:  [[1,1],[1,4],[4,1],[4,4]],
+  red:    [[1,10],[1,13],[4,10],[4,13]],
+  blue:   [[10,10],[10,13],[13,10],[13,13]],
+  yellow: [[10,1],[10,4],[13,1],[13,4]]
 };
 
 const COLORS     = ['red','blue','green','yellow'];
@@ -54,14 +54,14 @@ const selectedAmount = saved.selectedAmount || 10;
 const opponent       = saved.opponent       || { name: 'AI' };
 const autoStart      = saved.autoStart      || false;
 const roomId          = saved.roomId || null;
-const localColor      = saved.playerColor || 'red';
+const localColor      = saved.playerColor || 'yellow';
 const lobbyPlayers   = Array.isArray(saved.lobbyPlayers) ? saved.lobbyPlayers.filter(Boolean) : [];
 const playerCount    = Math.min(Math.max(lobbyPlayers.length || 2, 2), 4);
 const ACTIVE_COLORS   = playerCount === 2
-  ? ['red', 'yellow']
+  ? ['yellow', 'blue']
   : playerCount === 3
-    ? ['red', 'yellow', 'green']
-    : ['red', 'blue', 'green', 'yellow'];
+    ? ['yellow', 'blue', 'green']
+    : ['yellow', 'blue', 'green', 'red'];
 
 // ── Game state ────────────────────────────────────────────────
 // ── Game state ────────────────────────────────────────────────
@@ -163,11 +163,7 @@ function resetTurnTimer() {
   secondsLeft = 60;
   updateTimerDisplay();
   if (!G.started) return;
-  if (currentColor() !== localColor) {
-    setTimeout(() => {
-      if (G.started && !G.rolled && currentColor() !== localColor) rollDice(true);
-    }, 700);
-  }
+  // Remote turns wait for that player's own connected game client.
   turnTimer = setInterval(() => {
     secondsLeft--;
     updateTimerDisplay();
@@ -184,14 +180,9 @@ function updateTimerDisplay() {
 function handleTimeout() {
   addLog("Time's up! Turn skipped.", 'move');
   const col = currentColor();
-  if (col === 'red') {
-    if (!G.rolled) { rollDice(); }
-    else {
-      const mv = getMovablePieces('red', G.diceValue);
-      if (mv.length > 0) movePiece('red', mv[0], G.diceValue);
-      else nextTurn();
-    }
-  } else { nextTurn(); }
+  if (col === localColor && !G.rolled) {
+    addLog('Your turn is waiting for your dice roll.', 'move');
+  }
 }
 
 // ── Board ─────────────────────────────────────────────────────
@@ -359,7 +350,7 @@ function startGame() {
   const rollBtn  = $('rollDiceBtn');  if (rollBtn)  rollBtn.disabled=false;
   renderGamePlayers();
   updateGameUI();
-  addLog('Game started! Red goes first. 🎲','roll');
+  addLog(`Game started! ${localColor.charAt(0).toUpperCase()+localColor.slice(1)} is your color. 🎲`,'roll');
   const gameId = Math.floor(10000 + Math.random()*90000);
   const idEl   = $('gameHeaderId'); if (idEl) idEl.textContent='#'+gameId;
   resetTurnTimer();
@@ -371,7 +362,7 @@ $('startGameBtn').addEventListener('click', startGame);
 $('gameBackBtn')?.addEventListener('click', () => {
   if (G.started) {
     notifyRoomLeave();
-    endGame(false, ACTIVE_COLORS.find(color => color !== 'red') || 'AI');
+    endGame(false, ACTIVE_COLORS.find(color => color !== localColor) || 'AI');
   } else {
     window.location.href = 'index.html';
   }
@@ -379,7 +370,7 @@ $('gameBackBtn')?.addEventListener('click', () => {
 $('forfeitBtn').addEventListener('click', () => {
   if (!G.started) return;
   notifyRoomLeave();
-  endGame(false, ACTIVE_COLORS.find(color => color !== 'red') || 'AI');
+  endGame(false, ACTIVE_COLORS.find(color => color !== localColor) || 'AI');
 });
 $('rollDiceBtn').addEventListener('click', () => { if (!G.started||G.rolled) return; rollDice(); });
 
@@ -462,8 +453,8 @@ function rollDice(computerTurn = false) {
 
   animateDice(value, () => {
     addLog(`${col.charAt(0).toUpperCase()+col.slice(1)} rolled a ${value}`,'roll');
-    if (col==='red') {
-      const movable = getMovablePieces('red', value);
+    if (col===localColor) {
+      const movable = getMovablePieces(localColor, value);
       if (movable.length === 0) {
         addLog('No valid moves. Turn skipped.','move');
         setTimeout(nextTurn, 900);
@@ -471,11 +462,11 @@ function rollDice(computerTurn = false) {
         // Only one piece can move — auto-move it
         addLog('Auto-moving only available piece.','move');
         // Blink briefly then move
-        const el = $(`piece-red-${movable[0]}`);
+        const el = $(`piece-${localColor}-${movable[0]}`);
         if (el) el.classList.add('blinking');
         setTimeout(() => {
           clearBlink();
-          movePiece('red', movable[0], value);
+          movePiece(localColor, movable[0], value);
         }, 700);
       } else {
         // Multiple choices — blink all and wait for player click
@@ -501,9 +492,9 @@ function getMovablePieces(color, diceVal) {
 }
 function highlightMovable(diceVal) {
   document.querySelectorAll('.piece').forEach(p => p.classList.remove('selectable','blinking'));
-  if (currentColor() !== 'red') return;
-  getMovablePieces('red', diceVal).forEach(idx => {
-    const el = $(`piece-red-${idx}`);
+  if (currentColor() !== localColor) return;
+  getMovablePieces(localColor, diceVal).forEach(idx => {
+    const el = $(`piece-${localColor}-${idx}`);
     if (el) el.classList.add('selectable', 'blinking');
   });
 }
@@ -513,11 +504,11 @@ function clearBlink() {
 }
 
 function handlePieceClick(color,idx) {
-  if (color!=='red'||!G.rolled) return;
-  const movable=getMovablePieces('red',G.diceValue);
+  if (color!==localColor||!G.rolled) return;
+  const movable=getMovablePieces(localColor,G.diceValue);
   if (!movable.includes(idx)){toast('Cannot move this piece!','error');return;}
   clearBlink();
-  movePiece('red',idx,G.diceValue);
+  movePiece(localColor,idx,G.diceValue);
 }
 // ── Step-by-step piece animation ─────────────────────────────
 const STEP_DELAY = 160; // ms per cell
@@ -656,7 +647,7 @@ function movePiece(color, idx, steps) {
 
     renderPieces();
 
-    if (bonusTurn && color === 'red') {
+    if (bonusTurn && color === localColor) {
       addLog('Bonus turn! Roll again.', 'roll');
       G.rolled = false;
       updateGameUI();
@@ -739,7 +730,7 @@ function declareWinner(winnerColor) {
     });
   }
   // Show win modal for the winner (if winner is red, we already have logic elsewhere)
-  if (winnerColor==='red') {
+  if (winnerColor === localColor) {
     endGame(true,null);
   } else {
     endGame(false,winnerColor);
@@ -749,8 +740,8 @@ function declareWinner(winnerColor) {
 function endGame(playerWon, winnerColor) {
   G.winnerColor = playerWon ? 'red' : winnerColor;
   if (!playerWon) {
-    G.eliminated.red = true;
-    removePlayerPieces('red');
+    G.eliminated[localColor] = true;
+    removePlayerPieces(localColor);
   }
   updateGameUI();
 

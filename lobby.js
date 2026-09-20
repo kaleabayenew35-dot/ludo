@@ -218,7 +218,7 @@ function connectSocket() {
 function redirectToGame(betAmount, players) {
   var auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
   var playerIndex = players.findIndex(function(player){ return player.name === state.player.name; });
-  var colorRoster = players.length === 2 ? ['red', 'yellow'] : players.length === 3 ? ['red', 'yellow', 'green'] : ['red', 'blue', 'green', 'yellow'];
+  var colorRoster = players.length === 2 ? ['yellow', 'blue'] : players.length === 3 ? ['yellow', 'blue', 'green'] : ['yellow', 'blue', 'green', 'red'];
   var gameState = {
     name          : state.player.name,
     balance       : state.player.balance,
