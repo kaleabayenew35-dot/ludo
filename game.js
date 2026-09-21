@@ -727,7 +727,7 @@ function startGame() {
 }
 
 // ── Button listeners ──────────────────────────────────────────
-$('startGameBtn').addEventListener('click', startGame);
+$('startGameBtn')?.addEventListener('click', startGame);
 $('gameBackBtn')?.addEventListener('click', () => {
   if (G.started) {
     forfeitGame();
@@ -735,7 +735,7 @@ $('gameBackBtn')?.addEventListener('click', () => {
     window.location.href = 'index.html';
   }
 });
-$('forfeitBtn').addEventListener('click', () => {
+$('forfeitBtn')?.addEventListener('click', () => {
   if (!G.started) return;
   forfeitGame();
 });
