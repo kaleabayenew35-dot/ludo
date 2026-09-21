@@ -413,6 +413,28 @@ function syncBalance() {
   if (header) header.textContent = b === null ? '💰 …' : '💰 ' + Number(b).toLocaleString();
   const wbal = $('walletBalance'); if(wbal) wbal.textContent = b === null ? '— ETB' : Number(b).toLocaleString() + ' ETB';
   const mhbal = $('mhBalance'); if(mhbal) mhbal.textContent = formatMoney(b);
+  syncAmountButtons();
+}
+
+// Disable any bet amount button the player cannot afford.
+// If the currently selected amount becomes unaffordable, deselect it.
+function syncAmountButtons() {
+  const balance = Number(S.player.balance) || 0;
+  document.querySelectorAll('.amount-btn').forEach(btn => {
+    const amount = Number(btn.dataset.amount);
+    if (amount > balance) {
+      btn.disabled = true;
+      btn.classList.add('amount-disabled');
+      // Deselect if this was the chosen amount
+      if (S.selectedAmount === amount) {
+        btn.classList.remove('selected');
+        S.selectedAmount = 0;
+      }
+    } else {
+      btn.disabled = false;
+      btn.classList.remove('amount-disabled');
+    }
+  });
 }
 
 // ─── DASHBOARD & RIGHT PANEL RENDERING ───────────────────────

@@ -159,7 +159,7 @@ syncHeader();
 
 // ── Timer ─────────────────────────────────────────────────────
 let turnTimer = null;
-let secondsLeft = 60;
+let secondsLeft = 20;
 let presenceTimer = null;
 
 function stopTurnTimer() {
@@ -229,10 +229,9 @@ function startPresenceWatch() {
 }
 function resetTurnTimer() {
   stopTurnTimer();
-  secondsLeft = 60;
+  secondsLeft = 20;
   updateTimerDisplay();
   if (!G.started) return;
-  // Remote turns wait for that player's own connected game client.
   turnTimer = setInterval(() => {
     secondsLeft--;
     updateTimerDisplay();
@@ -242,9 +241,19 @@ function resetTurnTimer() {
 function updateTimerDisplay() {
   const el = $('gameTimer');
   if (!el) return;
-  const m = Math.floor(secondsLeft / 60);
-  const s = secondsLeft % 60;
-  el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const s = secondsLeft;
+  el.textContent = `00:${String(s).padStart(2,'0')}`;
+  // Colour the header timer red when ≤5s left
+  el.style.color = s <= 5 ? '#e63946' : '';
+  // Update the active player's per-row timer
+  const activeRow = document.querySelector('.game-player-row.active-player');
+  if (activeRow) {
+    const timerCell = activeRow.querySelector('.gpr-timer');
+    if (timerCell) {
+      timerCell.textContent = s + 's';
+      timerCell.style.color = s <= 5 ? '#e63946' : 'var(--text-1)';
+    }
+  }
 }
 function handleTimeout() {
   addLog("Time's up! Turn skipped.", 'move');
@@ -353,23 +362,55 @@ function renderPieces() {
 function renderGamePlayers() {
   const container = $('gamePlayers');
   if (!container) return;
-  container.innerHTML = '';
+
+  // Build name list for each active color slot
   const names = ACTIVE_COLORS.map((color, index) => {
-    if (color === localColor) return `You (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
-    // Find the matching lobby player for this slot
-    const lobbyIdx = index; // slot index maps to lobbyPlayers index
-    const lp = lobbyPlayers[lobbyIdx];
-    if (lp && lp.name && lp.name !== player.name) return `${lp.name} (${color.charAt(0).toUpperCase()}${color.slice(1)})`;
-    return `AI ${color.charAt(0).toUpperCase()}${color.slice(1)}`;
+    if (color === localColor) return 'You';
+    const lp = lobbyPlayers[index];
+    if (lp && lp.name && lp.name !== player.name) return lp.name;
+    return 'AI';
   });
-  ACTIVE_COLORS.forEach((col,i) => {
-    const row = make('div', 'game-player-row' + (i === G.turn % ACTIVE_COLORS.length ? ' active-player' : ''));
-    row.id = `gpr-${col}`;
-    row.innerHTML = `
-      <div class="color-dot ${col}"></div>
-      <span style="flex:1;font-size:11px">${names[i]}</span>
-      <span class="gpr-result" style="font-size:10px;color:var(--text-3)">${G.finished[col]}/4</span>`;
-    container.appendChild(row);
+
+  // ── 3-column compact table: Color swatch | Name | Timer ──
+  container.innerHTML = `
+    <table class="gp-table">
+      <thead>
+        <tr>
+          <th class="gp-th">Color</th>
+          <th class="gp-th">Player</th>
+          <th class="gp-th">Time</th>
+        </tr>
+      </thead>
+      <tbody id="gpTableBody"></tbody>
+    </table>`;
+
+  const tbody = container.querySelector('#gpTableBody');
+  const activeTurnIdx = G.turn % ACTIVE_COLORS.length;
+
+  ACTIVE_COLORS.forEach((col, i) => {
+    const isActive  = i === activeTurnIdx && !G.eliminated[col];
+    const isElim    = G.eliminated[col];
+    const isWinner  = G.winnerColor === col;
+    const result    = isElim ? 'LOSE' : isWinner ? 'WIN' : `${G.finished[col]}/4`;
+    const timerVal  = isActive ? secondsLeft + 's' : '—';
+
+    const tr = document.createElement('tr');
+    tr.id        = `gpr-${col}`;
+    tr.className = 'gp-row'
+      + (isActive  ? ' active-player' : '')
+      + (isElim    ? ' player-lost'   : '');
+
+    tr.innerHTML = `
+      <td class="gp-td gp-td-color">
+        <span class="color-dot ${col}"></span>
+        <span class="gp-result ${isElim ? 'player-result-loss' : isWinner ? 'player-result-win' : ''}">${result}</span>
+      </td>
+      <td class="gp-td gp-td-name">${names[i]}</td>
+      <td class="gp-td gp-td-timer">
+        <span class="gpr-timer" style="color:${isActive && secondsLeft <= 5 ? '#e63946' : 'inherit'}">${timerVal}</span>
+      </td>`;
+
+    tbody.appendChild(tr);
   });
 }
 
@@ -398,17 +439,22 @@ function updateGameUI() {
     scene.classList.toggle('dice-disabled', !canRoll);
   }
 
-  // Update only the active players' rows (ignore inactive colors)
+  // Update player table rows
   ACTIVE_COLORS.forEach((c, i) => {
     const row = $(`gpr-${c}`);
     if (!row) return;
-    const isActive = (i === G.turn % ACTIVE_COLORS.length);
-    row.className = 'game-player-row' + (isActive ? ' active-player' : '');
-    if (G.eliminated[c]) row.classList.add('player-lost');
-    const span = row.querySelector('.gpr-result');
-    if (span) {
-      span.textContent  = G.eliminated[c] ? 'LOSE' : G.winnerColor === c ? 'WIN' : `${G.finished[c]}/4`;
-      span.className    = `gpr-result ${G.eliminated[c] ? 'player-result-loss' : G.winnerColor === c ? 'player-result-win' : ''}`;
+    const isActive = (i === G.turn % ACTIVE_COLORS.length) && !G.eliminated[c];
+    row.className = 'gp-row' + (isActive ? ' active-player' : '') + (G.eliminated[c] ? ' player-lost' : '');
+
+    const resultSpan = row.querySelector('.gp-result');
+    if (resultSpan) {
+      resultSpan.textContent = G.eliminated[c] ? 'LOSE' : G.winnerColor === c ? 'WIN' : `${G.finished[c]}/4`;
+      resultSpan.className   = `gp-result ${G.eliminated[c] ? 'player-result-loss' : G.winnerColor === c ? 'player-result-win' : ''}`;
+    }
+    const timerSpan = row.querySelector('.gpr-timer');
+    if (timerSpan) {
+      timerSpan.textContent = isActive ? secondsLeft + 's' : '—';
+      timerSpan.style.color = isActive && secondsLeft <= 5 ? '#e63946' : '';
     }
   });
 }
@@ -647,13 +693,34 @@ function startGame() {
   renderGamePlayers();
   updateGameUI();
   addLog(`Game started! ${localColor.charAt(0).toUpperCase()+localColor.slice(1)} is your color. 🎲`,'roll');
-  const gameId = Math.floor(10000 + Math.random()*90000);
+  const gameId = roomId || `ludo-${Date.now()}`;
   const idEl   = $('gameHeaderId'); if (idEl) idEl.textContent='#'+gameId;
   resetTurnTimer();
   startPresenceWatch();
   broadcastGameState('start');
-  // Auto-roll only for AI / solo play. Multiplayer rooms must wait for the
-  // actual player turn to roll, and remote turns should never trigger a local roll.
+
+  // Deduct bets from all players via system_backend (only the first player
+  // in the room triggers this to avoid double-deduction — identified as
+  // the player at ACTIVE_COLORS[0])
+  if (roomId && selectedAmount > 0 && localColor === ACTIVE_COLORS[0]) {
+    const auth = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+    const players = ACTIVE_COLORS.map((col, i) => {
+      const lp = lobbyPlayers[i] || {};
+      const isLocal = col === localColor;
+      return {
+        color   : col,
+        username: isLocal ? (auth.username || player.name || '') : (lp.name || ''),
+        phone   : isLocal ? (auth.phonenumber || '') : (lp.phone || ''),
+      };
+    });
+    fetch(`${LUDO_API_URL}/api/settlement/deduct`, {
+      method  : 'POST',
+      headers : { 'Content-Type': 'application/json' },
+      body    : JSON.stringify({ players, betAmount: selectedAmount, gameId }),
+    }).catch(e => console.error('[ludo] settlement/deduct failed:', e));
+  }
+
+  // Auto-roll only for AI / solo play.
   if (ACTIVE_COLORS[0] !== localColor && !roomId) {
     setTimeout(() => rollDice(true), 1000);
   }
@@ -1177,30 +1244,52 @@ function endGame(playerWon, winnerColor) {
   // Tell the backend: game is over — resets room to 'waiting'
   notifyGameEnd();
 
-  // Persist result to backend (players balances & game log)
+  // ── Settlement via system_backend ─────────────────────────────────────────
+  // Build player identity list from lobby state + auth session
   async function persistResult() {
-    const bet = selectedAmount;
+    const auth       = JSON.parse(sessionStorage.getItem('appAuth') || '{}');
+    const bet        = selectedAmount;
+    const gameId     = roomId || `ludo-${Date.now()}`;
     const actualWinner = G.winnerColor;
-    for (const col of ACTIVE_COLORS) {
-      const delta = (col === actualWinner) ? bet * (ACTIVE_COLORS.length - 1) : -bet;
-      try {
-        await fetch(`${LUDO_API_URL}/api/player/${col}/bet`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ delta })
-        });
-      } catch (e) {
-        console.error('Failed to update balance for', col, e);
-      }
-    }
+
+    // Map color → identity (username + phone from lobby players / auth)
+    const playerIdentities = ACTIVE_COLORS.map((col, i) => {
+      const lp = lobbyPlayers[i] || {};
+      const isLocal = col === localColor;
+      return {
+        color    : col,
+        username : isLocal ? (auth.username || player.name || '') : (lp.name || ''),
+        phone    : isLocal ? (auth.phonenumber || '') : (lp.phone || ''),
+      };
+    });
+
+    const winnerIdentity = playerIdentities.find(p => p.color === actualWinner) || playerIdentities[0];
+
     try {
-      await fetch(`${LUDO_API_URL}/api/game/end`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ winnerColor: actualWinner, bet, log: G.log })
+      // Credit winner and record losses through the settlement service
+      await fetch(`${LUDO_API_URL}/api/settlement/payout`, {
+        method  : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify({
+          players  : playerIdentities,
+          winner   : winnerIdentity,
+          betAmount: bet,
+          gameId,
+        }),
       });
     } catch (e) {
-      console.error('Failed to record game', e);
+      console.error('[ludo] settlement/payout failed:', e);
+    }
+
+    // Also record the game in the DB log (fire-and-forget)
+    try {
+      await fetch(`${LUDO_API_URL}/api/game/end`, {
+        method  : 'POST',
+        headers : { 'Content-Type': 'application/json' },
+        body    : JSON.stringify({ winnerColor: actualWinner, bet, log: [] }),
+      });
+    } catch (e) {
+      console.error('[ludo] game/end failed:', e);
     }
   }
 
@@ -1211,8 +1300,11 @@ function endGame(playerWon, winnerColor) {
   stopTurnTimer();
 
   const bet = selectedAmount;
+  const pot = bet * ACTIVE_COLORS.length;
+  const fee = Math.round(pot * 0.10);
+  const gain = pot - fee;
   if (playerWon) {
-    const gain = bet * (ACTIVE_COLORS.length - 1); player.balance += gain; player.wins++; player.totalWon += gain;
+    player.balance += gain; player.wins++; player.totalWon += gain;
     $('winMsg').textContent = `You earned ${gain} ETB!`;
     $('winAmount').textContent = `+${gain} ETB`;
     showOverlay('winModal');
@@ -1222,7 +1314,7 @@ function endGame(playerWon, winnerColor) {
     player.losses++; player.totalLost += bet;
     const w = G.winnerColor || winnerColor || 'Opponent';
     $('loseMsg').textContent = `${w.charAt(0).toUpperCase()+w.slice(1)} wins. You lost ${bet} ETB.`;
-    $('loseAmount').textContent = `−${bet} ETB`;
+    $('loseAmount').textContent = `\u2212${bet} ETB`;
     showOverlay('loseModal');
   }
   let seconds = 3;
