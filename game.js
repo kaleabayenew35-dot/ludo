@@ -684,6 +684,18 @@ function connectGameSocket() {
 }
 
 function startGame() {
+  if (selectedAmount > 0 && (Number(player.balance) || 0) < selectedAmount) {
+    toast('Insufficient balance for this match.', 'error');
+    return;
+  }
+
+  if (selectedAmount > 0) {
+    player.balance = Number(player.balance || 0) - Number(selectedAmount);
+    player.totalLost = Number(player.totalLost || 0) + Number(selectedAmount);
+    saveStateBack();
+    syncHeader();
+  }
+
   resetGame();
   G.active=true; G.started=true;
   G.roomId = roomId;
@@ -1304,7 +1316,9 @@ function endGame(playerWon, winnerColor) {
   const fee = Math.round(pot * 0.10);
   const gain = pot - fee;
   if (playerWon) {
-    player.balance += gain; player.wins++; player.totalWon += gain;
+    // The system backend is the source of truth for the real payout. Do not
+    // add a second local-only payout on top of the backend settlement.
+    player.wins++; player.totalWon += gain;
     $('winMsg').textContent = `You earned ${gain} ETB!`;
     $('winAmount').textContent = `+${gain} ETB`;
     showOverlay('winModal');
