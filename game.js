@@ -620,17 +620,20 @@ function connectGameSocket() {
     applyRemoteAction(action);
   });
 
-  // Opponent intentionally left the game — we win immediately
+  // A player left mid-game
   GAME_SOCKET.on('game:player:left', (payload) => {
     if (!payload || payload.roomId !== roomId) return;
-    if (!G.started || endGame._called) return;
-    // The leaving player's color is the loser; we are the winner
+    if (!G.started) return;
     const leavingColor = payload.leavingColor;
     const leavingName  = payload.leavingName || leavingColor;
-    if (leavingColor === localColor) return; // shouldn't happen, but guard
-    // Mark them as gone and declare us the winner
-    G.eliminated[leavingColor] = true;
-    declareWinner(localColor);
+    if (leavingColor === localColor) return; // guard — shouldn't happen
+
+    // Show a brief notification to the remaining players
+    toast(`${leavingName} left the game`, 'error');
+
+    // Remove their pieces and turn, check if only 1 remains (win)
+    // eliminatePlayer handles all of that correctly for 2, 3, and 4 player games
+    eliminatePlayer(leavingColor);
   });
 }
 
@@ -672,26 +675,53 @@ $('forfeitBtn').addEventListener('click', () => {
 
 /**
  * Called when the local player intentionally leaves a live game.
- * 1. Tells the backend the room should reset.
- * 2. Emits game:player:left so the opponent's client shows the WIN modal.
- * 3. Shows the LOSE modal on this client for 3 s then redirects.
+ * - Shows LOSE modal on this client for 3s then goes to dashboard.
+ * - Emits game:player:left so remaining players get a toast + piece removal.
+ * - Does NOT reset the room — game continues for remaining players.
  */
 function forfeitGame() {
   if (!G.started || endGame._called) return;
+  endGame._called = true;
 
-  // Tell backend & opponent before we navigate away
+  // Tell the room server we left (removes us from room player list)
   notifyRoomLeave();
 
+  // Tell remaining players — they remove our pieces and continue
   if (GAME_SOCKET?.connected && roomId) {
     GAME_SOCKET.emit('game:player:left', {
       roomId,
-      leavingColor : localColor,
-      leavingName  : player.name,
+      leavingColor: localColor,
+      leavingName : player.name,
     });
   }
 
-  // Show lose modal on this (leaving) client, then go to dashboard
-  endGame(false, ACTIVE_COLORS.find(c => c !== localColor) || 'Opponent');
+  // Stop local game machinery
+  G.active = false; G.started = false;
+  stopPresenceWatch();
+  stopTurnTimer();
+
+  // Deduct bet from balance
+  if (player.balance >= selectedAmount) player.balance -= selectedAmount;
+  player.losses++;
+  player.totalLost += selectedAmount;
+
+  // Show LOSE modal for 3s then redirect
+  $('loseMsg').textContent = `You left the game. You lost ${selectedAmount} ETB.`;
+  $('loseAmount').textContent = `\u2212${selectedAmount} ETB`;
+  showOverlay('loseModal');
+
+  let seconds = 3;
+  const text = $('loseCountdownText');
+  const timer = setInterval(() => {
+    seconds--;
+    if (text) text.textContent = seconds > 0 ? `Closing in ${seconds}s` : 'Closing\u2026';
+  }, 1000);
+  setTimeout(() => {
+    clearInterval(timer);
+    hideOverlay('loseModal');
+    saveStateBack();
+    window.location.href = 'index.html';
+  }, 3000);
 }
 $('rollDiceBtn').addEventListener('click', () => { if (!G.started||G.rolled) return; rollDice(); });
 
